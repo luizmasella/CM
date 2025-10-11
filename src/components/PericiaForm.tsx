@@ -90,7 +90,32 @@ export default function PericiaForm({
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+
+  // Valida o formulário
+  if (!validate(formData)) {
+    toast.error("Por favor, corrija os erros no formulário");
+    return;
+  }
+
+  // Continua com o cadastro...
+  const periciaData = {
+    ...formData,
+    honorariosSolicitados: parseFloat(formData.honorariosSolicitados) || 0,
+    honorariosDeferidos: parseFloat(formData.honorariosDeferidos) || 0,
+    reclamadas: formData.reclamadas.filter((r) => r.trim() !== ""),
+  };
+
+  if (editingId !== null) {
+    updatePericia({ id: editingId, ...periciaData });
+    toast.success("Perícia atualizada com sucesso!");
+  } else {
+    addPericia(periciaData);
+    toast.success("Perícia cadastrada com sucesso!");
+  }
+
+  closeForm();
+};
 
     const periciaData = {
       ...formData,
