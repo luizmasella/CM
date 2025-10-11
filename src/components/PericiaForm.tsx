@@ -161,14 +161,27 @@ export default function PericiaForm({
               <label className="block text-sm font-medium text-gray-700">
                 Número do Processo*
               </label>
-              <input
-                type="text"
-                name="numeroProcesso"
-                value={formData.numeroProcesso}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                required
-              />
+              {/* Exemplo para número de processo */}
+<input
+  type="text"
+  name="numeroProcesso"
+  value={formData.numeroProcesso}
+  onChange={(e) => {
+    handleChange(e);
+    clearFieldError("numeroProcesso");
+  }}
+  className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${
+    getFieldError("numeroProcesso") 
+      ? "border-red-500 focus:ring-red-500" 
+      : "border-gray-300 focus:ring-blue-500"
+  }`}
+  required
+/>
+{getFieldError("numeroProcesso") && (
+  <p className="text-red-500 text-sm mt-1">
+    {getFieldError("numeroProcesso")}
+  </p>
+)}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
