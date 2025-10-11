@@ -1,5 +1,5 @@
 // FILE: src/utils/export.ts
-// Sistema de exportação para Excel e PDF
+// Sistema de exportação para Excel, CSV e PDF
 
 interface Pericia {
   id: number;
@@ -357,58 +357,6 @@ export class ExportService {
     }
   }
 
-  // Exporta resumo estatístico
-  exportStatsReport(stats: any, pericias: Pericia[]): void {
-    const hoje = new Date().toLocaleDateString("pt-BR");
-    
-    const content = `
-RELATÓRIO ESTATÍSTICO DE PERÍCIAS
-Gerado em: ${hoje}
-═══════════════════════════════════════════════════════════
-
-RESUMO GERAL
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total de Perícias:              ${stats.total}
-Perícias Concluídas:            ${stats.concluidas}
-Aguardando Ato Pericial:        ${stats.aguarda_ato_pericial}
-Aguardando Laudo:               ${stats.aguarda_laudo}
-Aguardando Quesitos:            ${stats.aguarda_quesitos}
-Aguardando Sentença:            ${stats.aguarda_sentenca}
-Aguardando Pagamento:           ${stats.aguarda_pagamento}
-Prazos Vencidos:                ${stats.prazosVencidos} ⚠️
-
-FINANCEIRO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Honorários Solicitados:         ${this.formatCurrency(stats.totalHonorariosSolicitados)}
-Honorários Deferidos:           ${this.formatCurrency(stats.totalHonorariosDeferidos)}
-A Receber:                      ${this.formatCurrency(stats.honorariosAReceber)}
-Já Recebidos:                   ${this.formatCurrency(stats.totalHonorariosPagos)}
-Taxa de Deferimento:            ${((stats.totalHonorariosDeferidos / stats.totalHonorariosSolicitados) * 100).toFixed(1)}%
-
-DISTRIBUIÇÃO POR TIPO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${this.getDistributionByType(pericias)}
-
-═══════════════════════════════════════════════════════════
-Sistema de Gerenciamento de Perícias Médicas
-    `;
-
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    this.downloadFile(blob, `relatorio-estatistico-${hoje}.txt`);
-  }
-
-  // Obtém distribuição por tipo
-  private getDistributionByType(pericias: Pericia[]): string {
-    const tipos = pericias.reduce((acc, p) => {
-      acc[p.tipo] = (acc[p.tipo] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(tipos)
-      .map(([tipo, count]) => `${tipo}: ${count}`)
-      .join("\n");
-  }
-
   // Função auxiliar para download
   private downloadFile(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
@@ -430,6 +378,5 @@ export function useExport() {
     exportToCSV: (pericias: Pericia[]) => exportService.exportToCSV(pericias),
     exportToExcel: (pericias: Pericia[]) => exportService.exportToExcel(pericias),
     exportToPDF: (pericias: Pericia[], stats: any) => exportService.exportToPDF(pericias, stats),
-    exportStatsReport: (stats: any, pericias: Pericia[]) => exportService.exportStatsReport(stats, pericias),
   };
 }
