@@ -1,4 +1,5 @@
-// FILE: src/components/PericiasManager.tsx (VERSÃO FINAL COM FILTROS)
+// FILE: src/components/PericiasManager.tsx
+// VERSÃO COMPLETA COM TABELA E TODAS AS FUNCIONALIDADES
 
 import React from "react";
 import {
@@ -6,24 +7,20 @@ import {
   Download,
   Edit2,
   Trash2,
-  AlertCircle,
+  Eye,
+  FileText,
   Search,
   Filter,
 } from "lucide-react";
 import { usePericias } from "../context/PericiasContext";
 
 interface PericiasManagerProps {
-  // ... (outras props continuam as mesmas)
   handleShowNewForm: () => void;
   handleEdit: (pericia: any) => void;
-
-  // NOVAS PROPS PARA OS FILTROS
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   filterStatus: string;
   setFilterStatus: (value: string) => void;
-
-  // Dados que ainda vem do App
   filteredPericias: any[];
   pericias: any[];
   statusConfig: any;
@@ -48,6 +45,11 @@ export default function PericiasManager({
 }: PericiasManagerProps) {
   const { deletePericia } = usePericias();
 
+  // Função para formatar data
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("pt-BR");
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -68,7 +70,7 @@ export default function PericiasManager({
         </div>
       </div>
 
-      {/* AQUI ESTÃO OS NOVOS CAMPOS DE FILTRO */}
+      {/* FILTROS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="relative">
           <Search
@@ -105,10 +107,206 @@ export default function PericiasManager({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        {/* ... (O resto do componente com a tabela continua exatamente o mesmo) ... */}
-        {/* ... */}
+      {/* CONTADOR DE RESULTADOS */}
+      <div className="mb-4 text-sm text-gray-600">
+        Mostrando <span className="font-semibold">{filteredPericias.length}</span> de{" "}
+        <span className="font-semibold">{pericias.length}</span> perícias
       </div>
+
+      {/* TABELA */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Processo
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reclamante
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tipo
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Data
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Honorários
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredPericias.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText size={48} className="text-gray-300" />
+                    <p className="text-lg font-medium">Nenhuma perícia encontrada</p>
+                    <p className="text-sm">
+                      {searchTerm || filterStatus !== "todos"
+                        ? "Tente ajustar os filtros de busca"
+                        : "Clique em 'Nova Perícia' para começar"}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filteredPericias.map((pericia) => {
+                const status = statusConfig[pericia.status] || {};
+                const StatusIcon = status.icon || FileText;
+
+                return (
+                  <tr
+                    key={pericia.id}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => openProcessPage(pericia)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {pericia.numeroProcesso}
+                      </div>
+                      <div className="text-xs text-gray-500">{pericia.vara}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {pericia.reclamante}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {pericia.reclamadas.length} reclamada(s)
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{pericia.tipo}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatDate(pericia.data)}
+                      </div>
+                      <div className="text-xs text-gray-500">{pericia.hora}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}
+                      >
+                        {StatusIcon && <StatusIcon size={12} className="mr-1" />}
+                        {status.label || pericia.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        R${" "}
+                        {pericia.honorariosDeferidos.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Solicitado: R${" "}
+                        {pericia.honorariosSolicitados.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewDetails(pericia);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Ver detalhes"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(pericia);
+                          }}
+                          className="text-yellow-600 hover:text-yellow-800 p-1 rounded hover:bg-yellow-50 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deletePericia(pericia.id);
+                          }}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* RODAPÉ COM RESUMO */}
+      {filteredPericias.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-gray-600 text-xs">Total de Perícias</p>
+              <p className="text-lg font-bold text-blue-700">
+                {filteredPericias.length}
+              </p>
+            </div>
+            <div className="bg-green-50 p-3 rounded-lg">
+              <p className="text-gray-600 text-xs">Hon. Deferidos</p>
+              <p className="text-lg font-bold text-green-700">
+                R${" "}
+                {filteredPericias
+                  .reduce((sum, p) => sum + p.honorariosDeferidos, 0)
+                  .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div className="bg-yellow-50 p-3 rounded-lg">
+              <p className="text-gray-600 text-xs">Hon. Solicitados</p>
+              <p className="text-lg font-bold text-yellow-700">
+                R${" "}
+                {filteredPericias
+                  .reduce((sum, p) => sum + p.honorariosSolicitados, 0)
+                  .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div className="bg-purple-50 p-3 rounded-lg">
+              <p className="text-gray-600 text-xs">Taxa de Deferimento</p>
+              <p className="text-lg font-bold text-purple-700">
+                {filteredPericias.length > 0
+                  ? (
+                      (filteredPericias.reduce(
+                        (sum, p) => sum + p.honorariosDeferidos,
+                        0
+                      ) /
+                        filteredPericias.reduce(
+                          (sum, p) => sum + p.honorariosSolicitados,
+                          0
+                        )) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                %
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
