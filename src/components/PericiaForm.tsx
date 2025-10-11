@@ -1,3 +1,9 @@
+import { useFormValidation } from "../utils/validation";
+import { useToast } from "../hooks/useToast";
+
+// Dentro do componente:
+const { validate, errors, getFieldError, clearFieldError } = useFormValidation();
+const { toast } = useToast();
 // FILE: src/components/PericiaForm.tsx
 
 import React, { useState, useEffect } from "react";
