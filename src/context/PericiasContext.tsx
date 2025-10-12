@@ -57,7 +57,6 @@ const PericiasContext = createContext<IPericiasContext | undefined>(undefined);
 const STORAGE_KEY = 'pericias_medicas_data';
 
 export function PericiasProvider({ children }: { children: ReactNode }) {
-  // Carrega dados do localStorage ou usa dados iniciais
   const [pericias, setPericias] = useState<Pericia[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -77,7 +76,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
   const [filterDate, setFilterDate] = useState('');
   const [filterPrazo, setFilterPrazo] = useState('todos');
 
-  // Salva no localStorage sempre que pericias mudar
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(pericias));
@@ -86,7 +84,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     }
   }, [pericias]);
 
-  // Função para limpar TODOS os filtros de uma vez
   const clearAllFilters = () => {
     setSearchTerm('');
     setFilterStatus('todos');
@@ -123,7 +120,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     setPericias(prev => prev.filter(p => p.id !== id)); 
   };
 
-  // Sistema de Backup/Restauração
   const exportData = (): string => {
     return JSON.stringify(pericias, null, 2);
   };
@@ -208,7 +204,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     [pericias]
   );
   
-  // CORREÇÃO: Adicionar filterDate no filtro
+  // CORREÇÃO: Filtro agora verifica TAMBÉM os prazos quando filterDate está ativo
   const filteredPericias = useMemo(() => {
     return pericias.filter(p => {
       // FILTRO 1: Busca por texto
@@ -221,7 +217,14 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       const matchesStatus = filterStatus === 'todos' || p.status === filterStatus;
       
       // FILTRO 3: Data específica - CORRIGIDO!
-      const matchesDate = filterDate === '' || p.data === filterDate;
+      // Agora verifica se a data da perícia OU se algum prazo é igual à data filtrada
+      let matchesDate = true;
+      if (filterDate !== '') {
+        matchesDate = 
+          p.data === filterDate ||  // Data da perícia
+          p.prazoLaudo === filterDate ||  // Prazo de laudo nesta data
+          p.prazoQuesitos === filterDate;  // Prazo de quesitos nesta data
+      }
       
       // FILTRO 4: Prazos
       let matchesPrazo = true;
@@ -246,7 +249,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       return matchesSearch && matchesStatus && matchesDate && matchesPrazo;
     });
-  }, [pericias, searchTerm, filterStatus, filterDate, filterPrazo]); // ADICIONADO filterDate aqui!
+  }, [pericias, searchTerm, filterStatus, filterDate, filterPrazo]);
 
   const stats = useMemo(() => ({ 
     total: pericias.length, 
