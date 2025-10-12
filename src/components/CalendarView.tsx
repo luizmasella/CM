@@ -6,7 +6,7 @@ import { useUI } from '../context/UIContext';
 import { CalendarDays, ChevronRight, Calendar, AlertTriangle, XCircle } from 'lucide-react';
 
 export default function CalendarView() {
-  const { pericias, periciasAtrasadas, setFilterDate, isPrazoVencido } = usePericias();
+  const { pericias, periciasAtrasadas, setFilterDate, setFilterPrazo, isPrazoVencido } = usePericias();
   const { setActiveTab, openProcessPage } = useUI();
   
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
@@ -21,6 +21,11 @@ export default function CalendarView() {
 
   const handleDayClick = (dateString: string) => {
     setFilterDate(dateString);
+    setActiveTab('pericias');
+  };
+  
+  const handlePrazosVencidosClick = () => {
+    setFilterPrazo('vencidos');
     setActiveTab('pericias');
   };
 
@@ -73,7 +78,7 @@ export default function CalendarView() {
         </div>
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><XCircle className="text-red-600" />Prazos Vencidos</h3>
-          {periciasAtrasadas.length > 0 ? periciasAtrasadas.slice(0,5).map(p => <div key={p.id} onClick={() => openProcessPage(p)} className="p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer"><p className="font-semibold text-sm text-red-800">{p.numeroProcesso}</p></div>) : <p className="text-gray-500 text-sm">Nenhum prazo vencido!</p>}
+          {periciasAtrasadas.length > 0 ? periciasAtrasadas.slice(0,5).map(p => <div key={p.id} onClick={handlePrazosVencidosClick} className="p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer"><p className="font-semibold text-sm text-red-800">{p.numeroProcesso}</p></div>) : <p className="text-gray-500 text-sm">Nenhum prazo vencido!</p>}
         </div>
       </div>
     </div>
