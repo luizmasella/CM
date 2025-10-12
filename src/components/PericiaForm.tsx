@@ -400,7 +400,7 @@ export default function PericiaForm() {
                     <p className="text-xs text-gray-500 mt-1">Campo livre para anotações gerais sobre o processo</p>
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
+<div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
                     <button 
                       type="button" 
                       onClick={closeForm} 
@@ -414,3 +414,10 @@ export default function PericiaForm() {
                       className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md font-medium flex items-center gap-2"
                     >
                       {editingId ? '💾 Salvar Alterações' : '✅ Cadastrar Perícia'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+}
