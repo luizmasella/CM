@@ -23,6 +23,28 @@ export default function PericiasManager() {
     tipo: ''
   });
 
+  // Extrai valores únicos para os dropdowns
+  const uniqueValues = useMemo(() => {
+    const varas = new Set<string>();
+    const juizes = new Set<string>();
+    const regioes = new Set<string>();
+    const tipos = new Set<string>();
+
+    pericias.forEach(p => {
+      if (p.vara) varas.add(p.vara);
+      if (p.juiz) juizes.add(p.juiz);
+      if (p.regiao) regioes.add(p.regiao);
+      if (p.tipo) tipos.add(p.tipo);
+    });
+
+    return {
+      varas: Array.from(varas).sort(),
+      juizes: Array.from(juizes).sort(),
+      regioes: Array.from(regioes).sort(),
+      tipos: Array.from(tipos).sort()
+    };
+  }, [pericias]);
+
   // Filtra pericias com busca avançada
   const filteredPericias = useMemo(() => {
     let result = pericias;
@@ -208,56 +230,157 @@ export default function PericiasManager() {
             Filtros Avançados
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* VARA - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vara</label>
-              <input
-                type="text"
-                placeholder="Ex: 1ª Vara..."
-                value={advancedFilters.vara}
-                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, vara: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  list="varas-list"
+                  placeholder="Digite ou selecione..."
+                  value={advancedFilters.vara}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, vara: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pr-8"
+                />
+                <datalist id="varas-list">
+                  {uniqueValues.varas.map(vara => (
+                    <option key={vara} value={vara} />
+                  ))}
+                </datalist>
+                {advancedFilters.vara && (
+                  <button
+                    onClick={() => setAdvancedFilters(prev => ({ ...prev, vara: '' }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Limpar"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.varas.length} vara(s) cadastrada(s)</p>
             </div>
+
+            {/* JUIZ - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Juiz(a)</label>
-              <input
-                type="text"
-                placeholder="Nome do juiz..."
-                value={advancedFilters.juiz}
-                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, juiz: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  list="juizes-list"
+                  placeholder="Digite ou selecione..."
+                  value={advancedFilters.juiz}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, juiz: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pr-8"
+                />
+                <datalist id="juizes-list">
+                  {uniqueValues.juizes.map(juiz => (
+                    <option key={juiz} value={juiz} />
+                  ))}
+                </datalist>
+                {advancedFilters.juiz && (
+                  <button
+                    onClick={() => setAdvancedFilters(prev => ({ ...prev, juiz: '' }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Limpar"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.juizes.length} juiz(a) cadastrado(s)</p>
             </div>
+
+            {/* REGIÃO - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Região</label>
-              <input
-                type="text"
-                placeholder="Ex: TRT 2ª Região..."
-                value={advancedFilters.regiao}
-                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, regiao: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  list="regioes-list"
+                  placeholder="Digite ou selecione..."
+                  value={advancedFilters.regiao}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, regiao: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pr-8"
+                />
+                <datalist id="regioes-list">
+                  {uniqueValues.regioes.map(regiao => (
+                    <option key={regiao} value={regiao} />
+                  ))}
+                </datalist>
+                {advancedFilters.regiao && (
+                  <button
+                    onClick={() => setAdvancedFilters(prev => ({ ...prev, regiao: '' }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Limpar"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.regioes.length} região(ões) cadastrada(s)</p>
             </div>
+
+            {/* RECLAMADA - Apenas Input (sem dropdown) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Reclamada</label>
-              <input
-                type="text"
-                placeholder="Nome da empresa..."
-                value={advancedFilters.reclamada}
-                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, reclamada: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Digite o nome..."
+                  value={advancedFilters.reclamada}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, reclamada: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pr-8"
+                />
+                {advancedFilters.reclamada && (
+                  <button
+                    onClick={() => setAdvancedFilters(prev => ({ ...prev, reclamada: '' }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Limpar"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Busca por texto livre</p>
             </div>
+
+            {/* TIPO - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-              <input
-                type="text"
-                placeholder="Ex: Médica..."
-                value={advancedFilters.tipo}
-                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, tipo: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  list="tipos-list"
+                  placeholder="Digite ou selecione..."
+                  value={advancedFilters.tipo}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, tipo: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pr-8"
+                />
+                <datalist id="tipos-list">
+                  {uniqueValues.tipos.map(tipo => (
+                    <option key={tipo} value={tipo} />
+                  ))}
+                </datalist>
+                {advancedFilters.tipo && (
+                  <button
+                    onClick={() => setAdvancedFilters(prev => ({ ...prev, tipo: '' }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Limpar"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.tipos.length} tipo(s) cadastrado(s)</p>
             </div>
+          </div>
+
+          {/* Dica de uso */}
+          <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
+            <p className="text-xs text-blue-800">
+              <strong>💡 Dica:</strong> Você pode digitar diretamente ou clicar na seta para ver as opções existentes. 
+              Reclamada aceita apenas texto livre pois há muitas empresas cadastradas.
+            </p>
           </div>
         </div>
       )}
@@ -265,15 +388,52 @@ export default function PericiasManager() {
       {/* Indicador de Filtros Ativos */}
       {hasActiveFilters && (
         <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Filter className="text-blue-600" size={18} />
             <span className="text-sm text-blue-800 font-medium">
-              {activeFiltersCount} filtro(s) ativo(s)
+              {activeFiltersCount} filtro(s) ativo(s):
             </span>
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
+                  Busca: "{searchTerm}"
+                </span>
+              )}
+              {filterStatus !== 'todos' && (
+                <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
+                  Status: {statusConfig[filterStatus]?.label}
+                </span>
+              )}
+              {advancedFilters.vara && (
+                <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                  Vara: {advancedFilters.vara}
+                </span>
+              )}
+              {advancedFilters.juiz && (
+                <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                  Juiz: {advancedFilters.juiz}
+                </span>
+              )}
+              {advancedFilters.regiao && (
+                <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                  Região: {advancedFilters.regiao}
+                </span>
+              )}
+              {advancedFilters.reclamada && (
+                <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                  Reclamada: {advancedFilters.reclamada}
+                </span>
+              )}
+              {advancedFilters.tipo && (
+                <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                  Tipo: {advancedFilters.tipo}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={handleClearAllFilters}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 ml-4"
           >
             <X size={16} />
             Limpar Todos
