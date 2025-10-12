@@ -22,7 +22,20 @@ export default function CalendarView() {
   };
 
   const getPericiasForDate = (dateString: string) => pericias.filter(p => p.data === dateString);
-  const getPrazosForDate = (dateString: string) => pericias.filter(p => p.prazoLaudo === dateString || p.prazoQuesitos === dateString);
+  
+  // CORRIGIDO: Função que pega prazos para uma data específica
+  const getPrazosForDate = (dateString: string) => {
+    return pericias.filter(p => {
+      // Verifica se o prazoLaudo é nesta data
+      if (p.prazoLaudo === dateString) return true;
+      
+      // Verifica se o prazoQuesitos é nesta data
+      if (p.prazoQuesitos === dateString) return true;
+      
+      return false;
+    });
+  };
+  
   const formatDateString = (year: number, month: number, day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   
   const isToday = (year: number, month: number, day: number) => {
@@ -47,16 +60,19 @@ export default function CalendarView() {
       return;
     }
     
-    // CORREÇÃO: Limpa TODOS os filtros antes de aplicar o novo
     clearAllFilters();
     setFilterDate(dateString);
     setActiveTab('pericias');
     
-    toast.success(`✅ Filtrando ${periciasNoDia.length + prazosNoDia.length} item(ns) de ${new Date(dateString).toLocaleDateString('pt-BR')}`);
+    const total = periciasNoDia.length + prazosNoDia.length;
+    const msg = [];
+    if (periciasNoDia.length > 0) msg.push(`${periciasNoDia.length} perícia(s)`);
+    if (prazosNoDia.length > 0) msg.push(`${prazosNoDia.length} prazo(s)`);
+    
+    toast.success(`✅ ${msg.join(' e ')} em ${new Date(dateString).toLocaleDateString('pt-BR')}`);
   };
   
   const handlePrazosClick = (tipo: 'vencidos' | '7dias' | '15dias') => {
-    // CORREÇÃO: Limpa TODOS os filtros antes de aplicar o novo
     clearAllFilters();
     setFilterPrazo(tipo);
     setActiveTab('pericias');
@@ -138,21 +154,27 @@ export default function CalendarView() {
               const prazosNoDia = getPrazosForDate(dateString);
               const isHoje = isToday(year, month, day);
               
-              const temPrazoVencido = prazosNoDia.some(p => 
-                (p.prazoLaudo === dateString && isPrazoVencido(p.prazoLaudo)) ||
-                (p.prazoQuesitos === dateString && isPrazoVencido(p.prazoQuesitos))
-              );
+              // CORRIGIDO: Verifica se TEM prazo vencido nesta data
+              const temPrazoVencido = prazosNoDia.some(p => {
+                const prazoVencidoLaudo = p.prazoLaudo === dateString && isPrazoVencido(p.prazoLaudo);
+                const prazoVencidoQuesitos = p.prazoQuesitos === dateString && isPrazoVencido(p.prazoQuesitos);
+                return prazoVencidoLaudo || prazoVencidoQuesitos;
+              });
+
+              const temConteudo = periciasNoDia.length > 0 || prazosNoDia.length > 0;
 
               return (
                 <div 
                   key={day} 
                   onClick={() => handleDayClick(dateString)} 
-                  className={`aspect-square p-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                  className={`aspect-square p-2 rounded-lg transition-all ${
+                    temConteudo ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
+                  } ${
                     isHoje 
                       ? 'bg-green-100 border-2 border-green-500 ring-2 ring-green-300' 
-                      : periciasNoDia.length > 0 || prazosNoDia.length > 0
+                      : temConteudo
                       ? 'bg-blue-50 border-2 border-blue-300' 
-                      : 'bg-white border border-gray-200 hover:bg-gray-50'
+                      : 'bg-white border border-gray-200'
                   }`}
                 >
                   <div className="text-sm font-semibold mb-1">{day}</div>
@@ -167,7 +189,7 @@ export default function CalendarView() {
                     )}
                     {prazosNoDia.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <div className={`w-2 h-2 rounded-full ${temPrazoVencido ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
+                        <div className={`w-2 h-2 rounded-full ${temPrazoVencido ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'}`}></div>
                         <span className={`text-xs font-medium ${temPrazoVencido ? 'text-red-700' : 'text-yellow-700'}`}>
                           {prazosNoDia.length}
                         </span>
@@ -178,6 +200,26 @@ export default function CalendarView() {
               );
             });
           })()}
+        </div>
+
+        {/* Legenda */}
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <span className="text-gray-700">Hoje</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <span className="text-gray-700">Perícias agendadas</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+            <span className="text-gray-700">Prazos</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded animate-pulse"></div>
+            <span className="text-gray-700">Prazos vencidos</span>
+          </div>
         </div>
       </div>
 
@@ -195,7 +237,7 @@ export default function CalendarView() {
           </div>
           {periciasNoMes.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {periciasNoMes.slice(0, 3).map(p => (
+              {periciasNoMes.slice(0, 5).map(p => (
                 <div 
                   key={p.id} 
                   onClick={() => openProcessPage(p)} 
@@ -225,14 +267,17 @@ export default function CalendarView() {
           </div>
           {periciasAtrasadas.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {periciasAtrasadas.slice(0, 3).map(p => (
+              {periciasAtrasadas.slice(0, 5).map(p => (
                 <div 
                   key={p.id} 
                   onClick={() => handlePrazosClick('vencidos')}
                   className="p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer transition-colors border border-red-200 animate-pulse"
                 >
                   <p className="font-semibold text-sm text-red-800">{p.numeroProcesso}</p>
-                  <p className="text-xs text-red-700">⚠️ Vencido</p>
+                  <p className="text-xs text-red-700">
+                    ⚠️ Prazo: {p.prazoLaudo && new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                    {p.prazoQuesitos && new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
               ))}
             </div>
@@ -253,7 +298,7 @@ export default function CalendarView() {
           </div>
           {prazos7Dias.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {prazos7Dias.slice(0, 3).map(p => (
+              {prazos7Dias.slice(0, 5).map(p => (
                 <div 
                   key={p.id} 
                   onClick={() => handlePrazosClick('7dias')}
@@ -262,6 +307,7 @@ export default function CalendarView() {
                   <p className="font-semibold text-sm text-yellow-800">{p.numeroProcesso}</p>
                   <p className="text-xs text-gray-700">
                     {p.prazoLaudo && new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                    {!p.prazoLaudo && p.prazoQuesitos && new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               ))}
@@ -283,7 +329,7 @@ export default function CalendarView() {
           </div>
           {prazos15Dias.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {prazos15Dias.slice(0, 3).map(p => (
+              {prazos15Dias.slice(0, 5).map(p => (
                 <div 
                   key={p.id} 
                   onClick={() => handlePrazosClick('15dias')}
@@ -292,6 +338,7 @@ export default function CalendarView() {
                   <p className="font-semibold text-sm text-orange-800">{p.numeroProcesso}</p>
                   <p className="text-xs text-gray-700">
                     {p.prazoLaudo && new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                    {!p.prazoLaudo && p.prazoQuesitos && new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               ))}
