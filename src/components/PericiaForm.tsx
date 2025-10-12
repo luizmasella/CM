@@ -154,21 +154,15 @@ export default function PericiaForm() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Região/Tribunal
-                            </label>
-                            <select 
-                              name="regiao" 
-                              value={formData.regiao} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">Selecione a região...</option>
-                                {regioesList.map(r => <option key={r} value={r}>{r}</option>)}
-                            </select>
+                            <Combobox
+                              label="Região/Tribunal"
+                              value={formData.regiao}
+                              onChange={(value) => setFormData(prev => ({...prev, regiao: value}))}
+                              options={regioes}
+                              onAddNew={addRegiao}
+                              placeholder="Digite ou selecione uma região..."
+                            />
                         </div>
-                    </div>
-                </div>
 
                 <div className="bg-green-50 p-6 rounded-lg border-2 border-green-200">
                     <h3 className="font-bold text-lg mb-4 text-green-800 flex items-center gap-2">
