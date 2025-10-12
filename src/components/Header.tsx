@@ -1,4 +1,4 @@
-// FILE: src/components/Header.tsx (APAGUE TUDO E COLE ISTO)
+// FILE: src/components/Header.tsx
 
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -9,7 +9,7 @@ export default function Header() {
   const { periciasAtrasadas } = usePericias();
   const { showNotifications, setShowNotifications, openProcessPage, setActiveTab } = useUI();
   
-  // Lógica de notificações (ainda vive aqui, pode ser movida para um context no futuro)
+  // A lógica de notificações ainda vive aqui, pode ser movida para um context no futuro
   const [notifications, setNotifications] = React.useState<any[]>([]); 
   const notificacoesNaoLidas = notifications.filter(n => !n.lida).length;
   const marcarComoLida = (id: number) => setNotifications(n => n.map(notif => notif.id === id ? {...notif, lida: true} : notif));
@@ -18,7 +18,6 @@ export default function Header() {
   const abrirPericiaNotificacao = (notificacao: any) => { openProcessPage(notificacao.pericia); marcarComoLida(notificacao.id); };
 
   const handleCardClick = () => {
-    // Futuramente, isso usaria o setFilter do PericiasContext
     setActiveTab('pericias');
   };
 
