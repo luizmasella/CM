@@ -4,17 +4,20 @@ import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { PlusCircle, X } from 'lucide-react';
+import { tiposPericia as tiposDefault } from '../config/constants';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia } = usePericias();
   const { editingId, closeForm } = useUI();
   
-  const [formData, setFormData] = useState({
+  const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
     tipo: '', vara: '', juiz: '', local: '', regiao: '', status: 'aguarda_ato_pericial',
     justicaGratuita: false, honorariosSolicitados: '', honorariosDeferidos: '',
     prazoLaudo: '', prazoQuesitos: '', observacoes: '', historico: []
-  });
+  };
+  const [formData, setFormData] = useState(initialState);
+  const [tiposPericia, setTiposPericia] = useState(tiposDefault);
 
   useEffect(() => {
     if (editingId !== null) {
@@ -27,12 +30,7 @@ export default function PericiaForm() {
         });
       }
     } else {
-        setFormData({
-            numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
-            tipo: '', vara: '', juiz: '', local: '', regiao: '', status: 'aguarda_ato_pericial',
-            justicaGratuita: false, honorariosSolicitados: '', honorariosDeferidos: '',
-            prazoLaudo: '', prazoQuesitos: '', observacoes: '', historico: []
-        });
+        setFormData(initialState);
     }
   }, [editingId, pericias]);
 
@@ -94,7 +92,7 @@ export default function PericiaForm() {
                     <div><label className="block text-sm font-medium text-gray-700">Data da Perícia*</label><input type="date" name="data" value={formData.data} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required /></div>
                     <div><label className="block text-sm font-medium text-gray-700">Hora da Perícia*</label><input type="time" name="hora" value={formData.hora} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required /></div>
                 </div>
-                <div><label className="block text-sm font-medium text-gray-700">Tipo de Perícia*</label><input type="text" name="tipo" value={formData.tipo} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required /></div>
+                <div><label className="block text-sm font-medium text-gray-700">Tipo de Perícia*</label><input type="text" name="tipo" value={formData.tipo} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required list="tipos-pericia" /><datalist id="tipos-pericia">{tiposPericia.map(t => <option key={t} value={t} />)}</datalist></div>
                 <div><label className="block text-sm font-medium text-gray-700">Observações</label><textarea name="observacoes" value={formData.observacoes} onChange={handleChange} rows={4} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea></div>
                 <div className="flex justify-end gap-4 pt-4 border-t">
                     <button type="button" onClick={closeForm} className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300">Cancelar</button>
