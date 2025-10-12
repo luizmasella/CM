@@ -1,5 +1,5 @@
 // FILE: src/components/PericiasManager.tsx
-// ATUALIZAÇÃO: Adicionado Modal de Confirmação para Deletar
+// ✅ VERSÃO COMPLETA - TODOS OS FILTROS AVANÇADOS FUNCIONANDO
 
 import React, { useState, useMemo } from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -35,7 +35,7 @@ export default function PericiasManager() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [periciaToDelete, setPericiaToDelete] = useState<{id: number, numeroProcesso: string} | null>(null);
   
-  // Filtros avançados locais
+  // ✅ FILTROS AVANÇADOS LOCAIS
   const [advancedFilters, setAdvancedFilters] = useState({
     vara: '',
     juiz: '',
@@ -46,7 +46,7 @@ export default function PericiasManager() {
     statusPrazo: 'todos'
   });
 
-  // Extrai valores únicos para os dropdowns
+  // ✅ Extrai valores únicos para os dropdowns
   const uniqueValues = useMemo(() => {
     const varas = new Set<string>();
     const juizes = new Set<string>();
@@ -68,7 +68,7 @@ export default function PericiasManager() {
     };
   }, [pericias]);
 
-  // Filtra com filtros avançados + filtros de prazos
+  // ✅ FILTRAGEM COMPLETA (contexto + filtros avançados)
   const filteredPericias = useMemo(() => {
     let result = contextFilteredPericias;
 
@@ -199,6 +199,7 @@ export default function PericiasManager() {
     );
   };
 
+  // ✅ CONTADOR DE FILTROS ATIVOS
   const hasActiveFilters = 
     searchTerm !== '' || 
     filterStatus !== 'todos' ||
@@ -297,12 +298,162 @@ export default function PericiasManager() {
         </button>
       </div>
 
-      {/* FILTROS AVANÇADOS - Mantido igual ao código anterior */}
-      {/* ... (código dos filtros avançados permanece igual) ... */}
+      {/* ✅ FILTROS AVANÇADOS COMPLETOS */}
+      {showAdvancedSearch && (
+        <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 mb-4 space-y-4">
+          <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <Filter size={18} />
+            Filtros Avançados
+          </h3>
 
-      {/* Indicador de Filtros Ativos - Mantido igual */}
-      {/* ... (código permanece igual) ... */}
+          {/* Linha 1: Vara, Juiz, Região */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vara</label>
+              <select
+                value={advancedFilters.vara}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, vara: e.target.value}))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              >
+                <option value="">Todas as Varas</option>
+                {uniqueValues.varas.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Juiz(a)</label>
+              <select
+                value={advancedFilters.juiz}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, juiz: e.target.value}))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              >
+                <option value="">Todos os Juízes</option>
+                {uniqueValues.juizes.map(j => (
+                  <option key={j} value={j}>{j}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Região</label>
+              <select
+                value={advancedFilters.regiao}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, regiao: e.target.value}))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              >
+                <option value="">Todas as Regiões</option>
+                {uniqueValues.regioes.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Linha 2: Reclamada, Tipo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reclamada (busca parcial)</label>
+              <input
+                type="text"
+                value={advancedFilters.reclamada}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, reclamada: e.target.value}))}
+                placeholder="Digite parte do nome..."
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perícia</label>
+              <select
+                value={advancedFilters.tipo}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, tipo: e.target.value}))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              >
+                <option value="">Todos os Tipos</option>
+                {uniqueValues.tipos.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Linha 3: Filtros de Prazos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Clock className="inline mr-1" size={14} />
+                Tipo de Prazo
+              </label>
+              <select
+                value={advancedFilters.tipoPrazo}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, tipoPrazo: e.target.value}))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              >
+                <option value="todos">Todos</option>
+                <option value="laudo">Apenas com Prazo de Laudo</option>
+                <option value="quesitos">Apenas com Prazo de Quesitos</option>
+                <option value="ambos">Com Ambos os Prazos</option>
+                <option value="sem_prazo">Sem Prazos Definidos</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Calendar className="inline mr-1" size={14} />
+                Status do Prazo
+              </label>
+              <select
+                value={advancedFilters.statusPrazo}
+                onChange={(e) => setAdvancedFilters(prev => ({...prev, statusPrazo: e.target.value}))}
+                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              >
+                <option value="todos">Todos</option>
+                <option value="vencido">Vencidos</option>
+                <option value="7dias">Próximos 7 Dias</option>
+                <option value="15dias">Próximos 15 Dias</option>
+                <option value="normal">Normal (Mais de 15 dias)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Botão Limpar Filtros Avançados */}
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => setAdvancedFilters({
+                vara: '', juiz: '', regiao: '', reclamada: '', tipo: '',
+                tipoPrazo: 'todos', statusPrazo: 'todos'
+              })}
+              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 hover:bg-gray-200 px-3 py-1 rounded transition-colors"
+            >
+              <X size={14} />
+              Limpar Filtros Avançados
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ INDICADOR DE FILTROS ATIVOS */}
+      {hasActiveFilters && (
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="text-blue-600" size={18} />
+            <span className="text-sm font-medium text-blue-800">
+              {activeFiltersCount} filtro(s) ativo(s)
+            </span>
+          </div>
+          <button
+            onClick={handleClearAllFilters}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 hover:bg-blue-100 px-3 py-1 rounded transition-colors"
+          >
+            <X size={14} />
+            Limpar Todos
+          </button>
+        </div>
+      )}
+
+      {/* TABELA */}
       <div className="overflow-x-auto">
           <table className="w-full">
               <thead className="bg-gray-100 border-b-2 border-gray-200">
