@@ -1,4 +1,4 @@
-// FILE: src/components/PericiasManager.tsx (CORRECTED VERSION)
+// FILE: src/components/PericiasManager.tsx (CONFIRME ESTE CÓDIGO)
 
 import React from 'react';
 import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter } from 'lucide-react';
@@ -35,8 +35,6 @@ export default function PericiasManager({
 }: PericiasManagerProps) {
   
   const { deletePericia } = usePericias();
-
-  // The extra '}' that was here has been removed.
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -92,7 +90,7 @@ export default function PericiasManager({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredPericias.map(pericia => {
-              const StatusIcon = statusConfig[pericia.status].icon;
+              const StatusIcon = statusConfig[pericia.status]?.icon; // Added safety check
               
               return (
                 <tr 
@@ -123,10 +121,12 @@ export default function PericiasManager({
                     </span>
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[pericia.status].color}`}>
-                      <StatusIcon size={12} className="mr-1" />
-                      {statusConfig[pericia.status].label}
-                    </span>
+                    {statusConfig[pericia.status] && (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[pericia.status].color}`}>
+                        {StatusIcon && <StatusIcon size={12} className="mr-1" />}
+                        {statusConfig[pericia.status].label}
+                        </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-center">
                     <div className="flex items-center justify-center gap-2">
