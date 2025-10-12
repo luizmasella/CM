@@ -208,6 +208,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     [pericias]
   );
   
+  // CORREÇÃO: Adicionar filterDate no filtro
   const filteredPericias = useMemo(() => {
     return pericias.filter(p => {
       // FILTRO 1: Busca por texto
@@ -219,7 +220,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       // FILTRO 2: Status
       const matchesStatus = filterStatus === 'todos' || p.status === filterStatus;
       
-      // FILTRO 3: Data específica
+      // FILTRO 3: Data específica - CORRIGIDO!
       const matchesDate = filterDate === '' || p.data === filterDate;
       
       // FILTRO 4: Prazos
@@ -245,7 +246,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       return matchesSearch && matchesStatus && matchesDate && matchesPrazo;
     });
-  }, [pericias, searchTerm, filterStatus, filterDate, filterPrazo]);
+  }, [pericias, searchTerm, filterStatus, filterDate, filterPrazo]); // ADICIONADO filterDate aqui!
 
   const stats = useMemo(() => ({ 
     total: pericias.length, 
