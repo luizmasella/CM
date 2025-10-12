@@ -1,4 +1,5 @@
 // FILE: src/components/CalendarView.tsx
+// ✅ VERSÃO CORRIGIDA - Ícones de prazos maiores e mais visíveis
 
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -202,20 +203,20 @@ export default function CalendarView() {
                       </div>
                     )}
                     
-                    {/* Prazos de Laudo */}
+                    {/* ✅ CORRIGIDO: Prazos de Laudo com ícones MAIORES (14px) */}
                     {prazosLaudo.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <FileText size={10} className={`${temPrazoVencido ? 'text-red-600 animate-pulse' : 'text-purple-600'}`} />
+                        <FileText size={14} className={`${temPrazoVencido ? 'text-red-600 animate-pulse' : 'text-purple-600'}`} />
                         <span className={`text-xs font-medium ${temPrazoVencido ? 'text-red-700' : 'text-purple-700'}`}>
                           L:{prazosLaudo.length}
                         </span>
                       </div>
                     )}
                     
-                    {/* Prazos de Quesitos */}
+                    {/* ✅ CORRIGIDO: Prazos de Quesitos com ícones MAIORES (14px) */}
                     {prazosQuesitos.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <FileQuestion size={10} className={`${temPrazoVencido ? 'text-red-600 animate-pulse' : 'text-orange-600'}`} />
+                        <FileQuestion size={14} className={`${temPrazoVencido ? 'text-red-600 animate-pulse' : 'text-orange-600'}`} />
                         <span className={`text-xs font-medium ${temPrazoVencido ? 'text-red-700' : 'text-orange-700'}`}>
                           Q:{prazosQuesitos.length}
                         </span>
@@ -228,7 +229,7 @@ export default function CalendarView() {
           })()}
         </div>
 
-        {/* LEGENDA MELHORADA */}
+        {/* ✅ LEGENDA MELHORADA com ícones maiores */}
         <div className="mt-6 bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
           <h4 className="font-semibold text-gray-700 mb-3">Legenda:</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
@@ -241,11 +242,11 @@ export default function CalendarView() {
               <span className="text-gray-700">Perícias agendadas</span>
             </div>
             <div className="flex items-center gap-2">
-              <FileText size={14} className="text-purple-600" />
+              <FileText size={16} className="text-purple-600" />
               <span className="text-gray-700">Prazo de Laudo (L)</span>
             </div>
             <div className="flex items-center gap-2">
-              <FileQuestion size={14} className="text-orange-600" />
+              <FileQuestion size={16} className="text-orange-600" />
               <span className="text-gray-700">Prazo de Quesitos (Q)</span>
             </div>
             <div className="flex items-center gap-2">
@@ -320,12 +321,12 @@ export default function CalendarView() {
                     <div className="flex flex-col gap-1 mt-1">
                       {prazoLaudoVencido && (
                         <p className="text-xs text-red-700 flex items-center gap-1">
-                          <FileText size={10} /> Laudo: {new Date(p.prazoLaudo!).toLocaleDateString('pt-BR')}
+                          <FileText size={12} /> Laudo: {new Date(p.prazoLaudo!).toLocaleDateString('pt-BR')}
                         </p>
                       )}
                       {prazoQuesitosVencido && (
                         <p className="text-xs text-red-700 flex items-center gap-1">
-                          <FileQuestion size={10} /> Quesitos: {new Date(p.prazoQuesitos!).toLocaleDateString('pt-BR')}
+                          <FileQuestion size={12} /> Quesitos: {new Date(p.prazoQuesitos!).toLocaleDateString('pt-BR')}
                         </p>
                       )}
                     </div>
@@ -365,12 +366,12 @@ export default function CalendarView() {
                   <div className="flex flex-col gap-1 mt-1">
                     {p.prazoLaudo && getPrazoStatus(p.prazoLaudo) === '7dias' && (
                       <p className="text-xs text-gray-700 flex items-center gap-1">
-                        <FileText size={10} /> {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                        <FileText size={12} /> {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
                       </p>
                     )}
                     {p.prazoQuesitos && getPrazoStatus(p.prazoQuesitos) === '7dias' && (
                       <p className="text-xs text-gray-700 flex items-center gap-1">
-                        <FileQuestion size={10} /> {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
+                        <FileQuestion size={12} /> {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
                       </p>
                     )}
                   </div>
@@ -409,12 +410,12 @@ export default function CalendarView() {
                   <div className="flex flex-col gap-1 mt-1">
                     {p.prazoLaudo && getPrazoStatus(p.prazoLaudo) === '15dias' && (
                       <p className="text-xs text-gray-700 flex items-center gap-1">
-                        <FileText size={10} /> {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                        <FileText size={12} /> {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
                       </p>
                     )}
                     {p.prazoQuesitos && getPrazoStatus(p.prazoQuesitos) === '15dias' && (
                       <p className="text-xs text-gray-700 flex items-center gap-1">
-                        <FileQuestion size={10} /> {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
+                        <FileQuestion size={12} /> {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
                       </p>
                     )}
                   </div>
