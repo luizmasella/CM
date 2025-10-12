@@ -14,7 +14,8 @@ export default function Dashboard() {
         setActiveTab('pericias');
     };
 
-    if (!stats) return <div>Carregando estatísticas...</div>;
+    // VERIFICAÇÃO IMPORTANTE: Garante que o componente não quebre se as stats ainda não foram calculadas
+    if (!stats) return <div className="p-6 text-center">Carregando estatísticas...</div>;
 
     return (
         <div className="space-y-6">
@@ -24,8 +25,12 @@ export default function Dashboard() {
               Visão Geral
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Cards do Dashboard... */}
+                <div onClick={() => handleCardClick('total', null)} className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl text-white cursor-pointer hover:shadow-xl"><p>Total</p><p className="text-3xl font-bold">{stats.total}</p></div>
+                <div onClick={() => handleCardClick('hoje', null)} className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-xl text-white cursor-pointer hover:shadow-xl"><p>Hoje</p><p className="text-3xl font-bold">{stats.hojeAgendadas}</p></div>
+                <div onClick={() => handleCardClick('prazos_vencidos', null)} className={`p-6 rounded-xl cursor-pointer ${periciasAtrasadas.length > 0 ? 'bg-red-500 text-white' : 'bg-gray-200'}`}><p>Prazos Vencidos</p><p className="text-3xl font-bold">{stats.prazosVencidos}</p></div>
+                <div onClick={() => handleCardClick('status', 'aguarda_ato_pericial')} className="bg-blue-100 p-6 rounded-xl cursor-pointer"><p>Aguardando Ato Pericial</p><p className="text-3xl font-bold">{stats.aguarda_ato_pericial}</p></div>
             </div>
+            {/* ...outros cards de stats... */}
           </div>
         </div>
     );
