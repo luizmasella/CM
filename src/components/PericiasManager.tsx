@@ -1,39 +1,121 @@
 // FILE: src/components/PericiasManager.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
+import { useToast } from '../context/ToastContext';
 import { statusConfig } from '../config/constants';
-import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X } from 'lucide-react';
 
 export default function PericiasManager() {
-  const { deletePericia, filteredPericias, pericias, searchTerm, setSearchTerm, filterStatus, setFilterStatus } = usePericias();
+  const { deletePericia, filteredPericias, pericias, searchTerm, setSearchTerm, filterStatus, setFilterStatus, clearAllFilters } = usePericias();
   const { handleShowNewForm, handleEdit, handleViewDetails, openProcessPage } = useUI();
+  const { toast } = useToast();
   
-  const exportarRelatorio = () => alert('Exportando...');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  
+  const exportarRelatorio = () => {
+    toast.info('📊 Funcionalidade de exportação está na aba Relatórios');
+  };
+
+  const handleDelete = async (id: number, numeroProcesso: string) => {
+    const confirmed = window.confirm(
+      `⚠️ Deseja realmente excluir a perícia?\n\nProcesso: ${numeroProcesso}\n\nEsta ação não pode ser desfeita!`
+    );
+    
+    if (confirmed) {
+      setDeletingId(id);
+      
+      // Simula um pequeno delay para mostrar o loading
+      setTimeout(() => {
+        deletePericia(id);
+        setDeletingId(null);
+        toast.success('✅ Perícia excluída com sucesso!');
+      }, 300);
+    }
+  };
+
+  const hasActiveFilters = searchTerm !== '' || filterStatus !== 'todos';
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <h2 className="text-2xl font-bold">Gerenciar Perícias</h2>
           <div className="flex gap-3">
-              <button onClick={exportarRelatorio} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-200 transition-colors"><Download size={18} /> Exportar</button>
-              <button onClick={handleShowNewForm} className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all shadow-md"><Plus size={20} /> Nova Perícia</button>
+              <button 
+                onClick={exportarRelatorio} 
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-200 transition-colors"
+              >
+                <Download size={18} /> 
+                Exportar
+              </button>
+              <button 
+                onClick={handleShowNewForm} 
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all shadow-md"
+              >
+                <Plus size={20} /> 
+                Nova Perícia
+              </button>
           </div>
       </div>
     
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input type="text" placeholder="Buscar por processo ou reclamante..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pl-10"/>
+              <input 
+                type="text" 
+                placeholder="Buscar por processo ou reclamante..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pl-10"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Limpar busca"
+                >
+                  <X size={18} />
+                </button>
+              )}
           </div>
           <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pl-10 appearance-none">
+              <select 
+                value={filterStatus} 
+                onChange={(e) => setFilterStatus(e.target.value)} 
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pl-10 appearance-none"
+              >
                   <option value="todos">Todos os Status</option>
-                  {Object.entries(statusConfig).map(([key, config]) => (<option key={key} value={key}>{config.label}</option>))}
+                  {Object.entries(statusConfig).map(([key, config]) => (
+                    <option key={key} value={key}>{config.label}</option>
+                  ))}
               </select>
           </div>
       </div>
+
+      {/* Indicador de Filtros Ativos + Botão Limpar */}
+      {hasActiveFilters && (
+        <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <Filter className="text-blue-600" size={18} />
+            <span className="text-sm text-blue-800 font-medium">
+              Filtros ativos: 
+              {searchTerm && ` Busca "${searchTerm}"`}
+              {filterStatus !== 'todos' && ` • Status: ${statusConfig[filterStatus]?.label}`}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              clearAllFilters();
+              toast.info('🔄 Filtros limpos');
+            }}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+          >
+            <X size={16} />
+            Limpar Filtros
+          </button>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
           <table className="w-full">
@@ -50,14 +132,38 @@ export default function PericiasManager() {
               <tbody className="bg-white divide-y divide-gray-200">
                   {filteredPericias.map(pericia => {
                       const StatusIcon = statusConfig[pericia.status]?.icon;
+                      const isDeleting = deletingId === pericia.id;
+                      
                       return (
-                          <tr key={pericia.id} onClick={() => handleViewDetails(pericia)} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                          <tr 
+                            key={pericia.id} 
+                            onClick={() => handleViewDetails(pericia)} 
+                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${isDeleting ? 'opacity-50' : ''}`}
+                          >
                               <td className="px-3 py-3 whitespace-nowrap">
-                                  <button onClick={(e) => { e.stopPropagation(); openProcessPage(pericia); }} className="text-sm font-medium text-blue-600 hover:text-blue-800 underline transition-colors">{pericia.numeroProcesso}</button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); openProcessPage(pericia); }} 
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 underline transition-colors"
+                                  >
+                                    {pericia.numeroProcesso}
+                                  </button>
                               </td>
-                              <td className="px-3 py-3"><p className="text-sm font-medium text-gray-900">{pericia.reclamante}</p></td>
-                              <td className="px-3 py-3 text-center whitespace-nowrap"><div><p className="text-sm font-medium text-gray-900">{new Date(pericia.data).toLocaleDateString('pt-BR')}</p><p className="text-xs text-gray-500">{pericia.hora}</p></div></td>
-                              <td className="px-3 py-3 whitespace-nowrap"><span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{pericia.tipo}</span></td>
+                              <td className="px-3 py-3">
+                                <p className="text-sm font-medium text-gray-900">{pericia.reclamante}</p>
+                              </td>
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {new Date(pericia.data).toLocaleDateString('pt-BR')}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{pericia.hora}</p>
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {pericia.tipo}
+                                </span>
+                              </td>
                               <td className="px-3 py-3 whitespace-nowrap text-center">
                                   {statusConfig[pericia.status] && (
                                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[pericia.status].color}`}>
@@ -68,8 +174,26 @@ export default function PericiasManager() {
                               </td>
                               <td className="px-3 py-3 whitespace-nowrap text-center">
                                   <div className="flex items-center justify-center gap-2">
-                                      <button onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }} className="text-blue-600 hover:text-blue-900 transition-colors" title="Editar"><Edit2 size={18} /></button>
-                                      <button onClick={(e) => { e.stopPropagation(); deletePericia(pericia.id); }} className="text-red-600 hover:text-red-900 transition-colors" title="Excluir"><Trash2 size={18} /></button>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }} 
+                                        className="text-blue-600 hover:text-blue-900 transition-colors p-1 hover:bg-blue-50 rounded" 
+                                        title="Editar"
+                                        disabled={isDeleting}
+                                      >
+                                        <Edit2 size={18} />
+                                      </button>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleDelete(pericia.id, pericia.numeroProcesso); }} 
+                                        className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed" 
+                                        title="Excluir"
+                                        disabled={isDeleting}
+                                      >
+                                        {isDeleting ? (
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                        ) : (
+                                          <Trash2 size={18} />
+                                        )}
+                                      </button>
                                   </div>
                               </td>
                           </tr>
@@ -77,9 +201,37 @@ export default function PericiasManager() {
                   })}
               </tbody>
           </table>
-          {filteredPericias.length === 0 && <div className="text-center py-12"><AlertCircle className="mx-auto text-gray-400 mb-3" size={48} /><p className="text-gray-500">Nenhuma perícia encontrada</p></div>}
+          
+          {filteredPericias.length === 0 && (
+            <div className="text-center py-12">
+              <AlertCircle className="mx-auto text-gray-400 mb-3" size={48} />
+              <p className="text-gray-500 font-medium">Nenhuma perícia encontrada</p>
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    clearAllFilters();
+                    toast.info('🔄 Filtros limpos');
+                  }}
+                  className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Limpar filtros e ver todas
+                </button>
+              )}
+            </div>
+          )}
       </div>
-      <div className="mt-4 flex justify-between items-center text-sm text-gray-600"><p>Mostrando <span className="font-semibold">{filteredPericias.length}</span> de <span className="font-semibold">{pericias.length}</span> perícias</p></div>
+      
+      <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+        <p>
+          Mostrando <span className="font-semibold">{filteredPericias.length}</span> de{' '}
+          <span className="font-semibold">{pericias.length}</span> perícias
+        </p>
+        {hasActiveFilters && (
+          <p className="text-blue-600 font-medium">
+            ✓ Filtros aplicados
+          </p>
+        )}
+      </div>
     </div>
   );
 }
