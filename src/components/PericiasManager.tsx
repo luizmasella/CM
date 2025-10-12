@@ -4,7 +4,7 @@ import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
 import { statusConfig } from '../config/constants';
-import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X, ChevronDown, ChevronUp, Calendar, Clock } from 'lucide-react';
 
 export default function PericiasManager() {
   const { 
@@ -14,10 +14,12 @@ export default function PericiasManager() {
     setSearchTerm, 
     filterStatus, 
     setFilterStatus, 
-    filterDate,        // ← ADICIONADO
-    setFilterDate,     // ← ADICIONADO
+    filterDate,
+    setFilterDate,
     clearAllFilters,
-    filteredPericias: contextFilteredPericias  // ← RENOMEADO para usar como base
+    filteredPericias: contextFilteredPericias,
+    isPrazoVencido,
+    getPrazoStatus
   } = usePericias();
   
   const { handleShowNewForm, handleEdit, handleViewDetails, openProcessPage } = useUI();
@@ -32,7 +34,9 @@ export default function PericiasManager() {
     juiz: '',
     regiao: '',
     reclamada: '',
-    tipo: ''
+    tipo: '',
+    tipoPrazo: 'todos', // NOVO: laudo, quesitos, todos
+    statusPrazo: 'todos' // NOVO: vencido, 7dias, 15dias, normal, todos
   });
 
   // Extrai valores únicos para os dropdowns
@@ -57,12 +61,11 @@ export default function PericiasManager() {
     };
   }, [pericias]);
 
-  // CORREÇÃO: Usa contextFilteredPericias como BASE (que já tem filterDate aplicado)
-  // e aplica os filtros avançados EM CIMA
+  // Filtra com filtros avançados + filtros de prazos
   const filteredPericias = useMemo(() => {
-    let result = contextFilteredPericias; // ← MUDANÇA: usa filtro do Context como base
+    let result = contextFilteredPericias;
 
-    // Aplica apenas os filtros avançados
+    // Filtros avançados existentes
     if (advancedFilters.vara) {
       result = result.filter(p =>
         p.vara.toLowerCase().includes(advancedFilters.vara.toLowerCase())
@@ -95,8 +98,41 @@ export default function PericiasManager() {
       );
     }
 
+    // NOVO: Filtro por tipo de prazo
+    if (advancedFilters.tipoPrazo !== 'todos') {
+      result = result.filter(p => {
+        if (advancedFilters.tipoPrazo === 'laudo') {
+          return p.prazoLaudo !== null && p.prazoLaudo !== '';
+        }
+        if (advancedFilters.tipoPrazo === 'quesitos') {
+          return p.prazoQuesitos !== null && p.prazoQuesitos !== '';
+        }
+        if (advancedFilters.tipoPrazo === 'ambos') {
+          return (p.prazoLaudo !== null && p.prazoLaudo !== '') && 
+                 (p.prazoQuesitos !== null && p.prazoQuesitos !== '');
+        }
+        if (advancedFilters.tipoPrazo === 'sem_prazo') {
+          return (p.prazoLaudo === null || p.prazoLaudo === '') && 
+                 (p.prazoQuesitos === null || p.prazoQuesitos === '');
+        }
+        return true;
+      });
+    }
+
+    // NOVO: Filtro por status do prazo
+    if (advancedFilters.statusPrazo !== 'todos') {
+      result = result.filter(p => {
+        const statusLaudo = getPrazoStatus(p.prazoLaudo);
+        const statusQuesitos = getPrazoStatus(p.prazoQuesitos);
+        
+        // Se qualquer um dos prazos tem o status procurado
+        return statusLaudo === advancedFilters.statusPrazo || 
+               statusQuesitos === advancedFilters.statusPrazo;
+      });
+    }
+
     return result;
-  }, [contextFilteredPericias, advancedFilters]); // ← Dependências corretas
+  }, [contextFilteredPericias, advancedFilters, getPrazoStatus]);
   
   const exportarRelatorio = () => {
     toast.info('📊 Funcionalidade de exportação está na aba Relatórios');
@@ -125,30 +161,62 @@ export default function PericiasManager() {
       juiz: '',
       regiao: '',
       reclamada: '',
-      tipo: ''
+      tipo: '',
+      tipoPrazo: 'todos',
+      statusPrazo: 'todos'
     });
     toast.info('🔄 Todos os filtros foram limpos');
+  };
+
+  // NOVO: Função para renderizar indicador de prazo
+  const renderPrazoIndicator = (prazo: string | null, tipo: 'laudo' | 'quesitos') => {
+    if (!prazo) return null;
+    
+    const status = getPrazoStatus(prazo);
+    const dataFormatada = new Date(prazo).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    
+    const configs = {
+      'vencido': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300', icon: '🔴' },
+      '7dias': { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300', icon: '⚡' },
+      '15dias': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300', icon: '⏰' },
+      'normal': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300', icon: '✅' }
+    };
+    
+    const config = configs[status];
+    const label = tipo === 'laudo' ? 'L' : 'Q';
+    
+    return (
+      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${config.bg} ${config.text} border ${config.border}`}>
+        <span>{config.icon}</span>
+        <span className="font-medium">{label}:</span>
+        <span>{dataFormatada}</span>
+      </div>
+    );
   };
 
   const hasActiveFilters = 
     searchTerm !== '' || 
     filterStatus !== 'todos' ||
-    filterDate !== '' ||  // ← ADICIONADO
+    filterDate !== '' ||
     advancedFilters.vara !== '' ||
     advancedFilters.juiz !== '' ||
     advancedFilters.regiao !== '' ||
     advancedFilters.reclamada !== '' ||
-    advancedFilters.tipo !== '';
+    advancedFilters.tipo !== '' ||
+    advancedFilters.tipoPrazo !== 'todos' ||
+    advancedFilters.statusPrazo !== 'todos';
 
   const activeFiltersCount = 
     (searchTerm ? 1 : 0) +
     (filterStatus !== 'todos' ? 1 : 0) +
-    (filterDate ? 1 : 0) +  // ← ADICIONADO
+    (filterDate ? 1 : 0) +
     (advancedFilters.vara ? 1 : 0) +
     (advancedFilters.juiz ? 1 : 0) +
     (advancedFilters.regiao ? 1 : 0) +
     (advancedFilters.reclamada ? 1 : 0) +
-    (advancedFilters.tipo ? 1 : 0);
+    (advancedFilters.tipo ? 1 : 0) +
+    (advancedFilters.tipoPrazo !== 'todos' ? 1 : 0) +
+    (advancedFilters.statusPrazo !== 'todos' ? 1 : 0);
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -231,8 +299,9 @@ export default function PericiasManager() {
             <Search size={18} />
             Filtros Avançados
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* VARA - Dropdown + Input */}
+          
+          {/* Linha 1: Filtros básicos */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vara</label>
               <div className="relative">
@@ -259,10 +328,9 @@ export default function PericiasManager() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">{uniqueValues.varas.length} vara(s) cadastrada(s)</p>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.varas.length} vara(s)</p>
             </div>
 
-            {/* JUIZ - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Juiz(a)</label>
               <div className="relative">
@@ -289,10 +357,9 @@ export default function PericiasManager() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">{uniqueValues.juizes.length} juiz(a) cadastrado(s)</p>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.juizes.length} juiz(a)</p>
             </div>
 
-            {/* REGIÃO - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Região</label>
               <div className="relative">
@@ -319,10 +386,12 @@ export default function PericiasManager() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">{uniqueValues.regioes.length} região(ões) cadastrada(s)</p>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.regioes.length} região(ões)</p>
             </div>
+          </div>
 
-            {/* RECLAMADA - Apenas Input (sem dropdown) */}
+          {/* Linha 2: Reclamada e Tipo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Reclamada</label>
               <div className="relative">
@@ -346,7 +415,6 @@ export default function PericiasManager() {
               <p className="text-xs text-gray-500 mt-1">Busca por texto livre</p>
             </div>
 
-            {/* TIPO - Dropdown + Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
               <div className="relative">
@@ -373,15 +441,54 @@ export default function PericiasManager() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">{uniqueValues.tipos.length} tipo(s) cadastrado(s)</p>
+              <p className="text-xs text-gray-500 mt-1">{uniqueValues.tipos.length} tipo(s)</p>
+            </div>
+          </div>
+
+          {/* NOVO: Linha 3 - Filtros de Prazos */}
+          <div className="border-t-2 border-gray-300 pt-4 mt-4">
+            <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Clock size={16} />
+              Filtros de Prazos
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Prazo</label>
+                <select
+                  value={advancedFilters.tipoPrazo}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, tipoPrazo: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+                >
+                  <option value="todos">Todos</option>
+                  <option value="laudo">Apenas Laudo</option>
+                  <option value="quesitos">Apenas Quesitos</option>
+                  <option value="ambos">Laudo E Quesitos</option>
+                  <option value="sem_prazo">Sem Prazo Definido</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status do Prazo</label>
+                <select
+                  value={advancedFilters.statusPrazo}
+                  onChange={(e) => setAdvancedFilters(prev => ({ ...prev, statusPrazo: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+                >
+                  <option value="todos">Todos</option>
+                  <option value="vencido">🔴 Vencidos</option>
+                  <option value="7dias">⚡ Próximos 7 dias</option>
+                  <option value="15dias">⏰ Próximos 15 dias</option>
+                  <option value="normal">✅ Normal (mais de 15 dias)</option>
+                </select>
+              </div>
             </div>
           </div>
 
           {/* Dica de uso */}
           <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
             <p className="text-xs text-blue-800">
-              <strong>💡 Dica:</strong> Você pode digitar diretamente ou clicar na seta para ver as opções existentes. 
-              Reclamada aceita apenas texto livre pois há muitas empresas cadastradas.
+              <strong>💡 Dica:</strong> Use os filtros de prazos para encontrar rapidamente perícias com prazos urgentes. 
+              L = Laudo, Q = Quesitos.
             </p>
           </div>
         </div>
@@ -406,7 +513,6 @@ export default function PericiasManager() {
                   Status: {statusConfig[filterStatus]?.label}
                 </span>
               )}
-              {/* NOVO: Mostra filtro de data */}
               {filterDate && (
                 <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
                   📅 Data: {new Date(filterDate).toLocaleDateString('pt-BR')}
@@ -437,6 +543,16 @@ export default function PericiasManager() {
                   Tipo: {advancedFilters.tipo}
                 </span>
               )}
+              {advancedFilters.tipoPrazo !== 'todos' && (
+                <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
+                  Prazo: {advancedFilters.tipoPrazo}
+                </span>
+              )}
+              {advancedFilters.statusPrazo !== 'todos' && (
+                <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full">
+                  Status: {advancedFilters.statusPrazo}
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -456,6 +572,7 @@ export default function PericiasManager() {
                       <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Processo</th>
                       <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Reclamante</th>
                       <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Data</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Prazos</th>
                       <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
                       <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                       <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Ações</th>
@@ -489,6 +606,16 @@ export default function PericiasManager() {
                                     {new Date(pericia.data).toLocaleDateString('pt-BR')}
                                   </p>
                                   <p className="text-xs text-gray-500">{pericia.hora}</p>
+                                </div>
+                              </td>
+                              {/* NOVA COLUNA DE PRAZOS */}
+                              <td className="px-3 py-3">
+                                <div className="flex flex-col gap-1">
+                                  {renderPrazoIndicator(pericia.prazoLaudo, 'laudo')}
+                                  {renderPrazoIndicator(pericia.prazoQuesitos, 'quesitos')}
+                                  {!pericia.prazoLaudo && !pericia.prazoQuesitos && (
+                                    <span className="text-xs text-gray-400">Sem prazo</span>
+                                  )}
                                 </div>
                               </td>
                               <td className="px-3 py-3 whitespace-nowrap">
