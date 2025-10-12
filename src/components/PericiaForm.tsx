@@ -4,7 +4,7 @@ import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
 import { PlusCircle, X } from 'lucide-react';
-import { tiposPericia as tiposDefault, regioesList } from '../config/constants';
+import { tiposPericia as tiposDefault, regioesList, statusConfig } from '../config/constants';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia } = usePericias();
@@ -58,45 +58,12 @@ export default function PericiaForm() {
     setFormData(prev => ({ ...prev, reclamadas: newReclamadas.length > 0 ? newReclamadas : [''] }));
   };
 
-  const validateForm = () => {
-    if (!formData.numeroProcesso || !formData.reclamante || !formData.data || 
-        !formData.hora || !formData.tipo || !formData.vara || !formData.juiz || 
-        !formData.local || !formData.regiao) {
-      toast.error('❌ Por favor, preencha todos os campos obrigatórios!');
-      return false;
-    }
-    
-    const reclamadasValidas = formData.reclamadas.filter(r => r.trim() !== '');
-    if (reclamadasValidas.length === 0) {
-      toast.error('❌ Adicione pelo menos uma reclamada!');
-      return false;
-    }
-    
-    const honorariosSol = parseFloat(formData.honorariosSolicitados);
-    const honorariosDef = parseFloat(formData.honorariosDeferidos);
-    
-    if (isNaN(honorariosSol) || honorariosSol < 0) {
-      toast.error('❌ Valor de honorários solicitados inválido!');
-      return false;
-    }
-    
-    if (isNaN(honorariosDef) || honorariosDef < 0) {
-      toast.error('❌ Valor de honorários deferidos inválido!');
-      return false;
-    }
-    
-    if (honorariosDef > honorariosSol) {
-      toast.warning('⚠️ Honorários deferidos não podem ser maiores que os solicitados!');
-      return false;
-    }
-    
-    return true;
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    // Validação mínima: apenas verificar se tem ao menos número do processo
+    if (!formData.numeroProcesso || formData.numeroProcesso.trim() === '') {
+      toast.error('❌ Número do processo é obrigatório!');
       return;
     }
     
@@ -147,12 +114,12 @@ export default function PericiaForm() {
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                               placeholder="0000000-00.0000.0.00.0000"
-                              required 
                             />
+                            <p className="text-xs text-gray-500 mt-1">Único campo obrigatório</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Vara*
+                              Vara
                             </label>
                             <input 
                               type="text" 
@@ -161,7 +128,6 @@ export default function PericiaForm() {
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                               placeholder="1ª Vara do Trabalho"
-                              required 
                             />
                         </div>
                     </div>
@@ -169,7 +135,7 @@ export default function PericiaForm() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Juiz(a)*
+                              Juiz(a)
                             </label>
                             <input 
                               type="text" 
@@ -178,19 +144,17 @@ export default function PericiaForm() {
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                               placeholder="Dr(a). Nome Completo"
-                              required 
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Região*
+                              Região
                             </label>
                             <select 
                               name="regiao" 
                               value={formData.regiao} 
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              required
                             >
                                 <option value="">Selecione...</option>
                                 {regioesList.map(r => <option key={r} value={r}>{r}</option>)}
@@ -206,7 +170,7 @@ export default function PericiaForm() {
                     </h3>
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Reclamante*
+                          Reclamante
                         </label>
                         <input 
                           type="text" 
@@ -215,13 +179,12 @@ export default function PericiaForm() {
                           onChange={handleChange} 
                           className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent" 
                           placeholder="Nome Completo do Reclamante"
-                          required 
                         />
                     </div>
                     
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Reclamada(s)*
+                          Reclamada(s)
                         </label>
                         {formData.reclamadas.map((reclamada, index) => (
                             <div key={index} className="flex items-center gap-2 mb-2">
@@ -231,7 +194,6 @@ export default function PericiaForm() {
                                   onChange={(e) => handleReclamadaChange(index, e.target.value)} 
                                   className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent" 
                                   placeholder={`Reclamada ${index + 1}`}
-                                  required
                                 />
                                 {formData.reclamadas.length > 1 && (
                                     <button 
@@ -262,7 +224,7 @@ export default function PericiaForm() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Data*
+                              Data
                             </label>
                             <input 
                               type="date" 
@@ -270,12 +232,11 @@ export default function PericiaForm() {
                               value={formData.data} 
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
-                              required 
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Hora*
+                              Hora
                             </label>
                             <input 
                               type="time" 
@@ -283,12 +244,11 @@ export default function PericiaForm() {
                               value={formData.hora} 
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
-                              required 
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Tipo*
+                              Tipo
                             </label>
                             <input 
                               type="text" 
@@ -298,7 +258,6 @@ export default function PericiaForm() {
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
                               list="tipos-pericia" 
                               placeholder="Médica, Ortopédica..."
-                              required
                             />
                             <datalist id="tipos-pericia">
                                 {tiposPericia.map(t => <option key={t} value={t} />)}
@@ -308,7 +267,7 @@ export default function PericiaForm() {
                     
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Local da Perícia*
+                          Local da Perícia
                         </label>
                         <input 
                           type="text" 
@@ -317,20 +276,36 @@ export default function PericiaForm() {
                           onChange={handleChange} 
                           className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
                           placeholder="Fórum, Hospital, Consultório..."
-                          required 
                         />
                     </div>
                 </div>
 
-                {/* SEÇÃO 4: HONORÁRIOS E PRAZOS */}
+                {/* SEÇÃO 4: STATUS E HONORÁRIOS */}
                 <div className="bg-yellow-50 p-6 rounded-lg border-2 border-yellow-200">
                     <h3 className="font-bold text-lg mb-4 text-yellow-800 flex items-center gap-2">
-                      💰 Honorários e Prazos
+                      💰 Status e Honorários
                     </h3>
+                    
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Status do Processo
+                        </label>
+                        <select 
+                          name="status" 
+                          value={formData.status} 
+                          onChange={handleChange} 
+                          className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        >
+                          {Object.entries(statusConfig).map(([key, config]) => (
+                            <option key={key} value={key}>{config.label}</option>
+                          ))}
+                        </select>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Honorários Solicitados (R$)*
+                              Honorários Solicitados (R$)
                             </label>
                             <input 
                               type="number" 
@@ -340,12 +315,11 @@ export default function PericiaForm() {
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent" 
                               placeholder="2500.00"
-                              required 
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Honorários Deferidos (R$)*
+                              Honorários Deferidos (R$)
                             </label>
                             <input 
                               type="number" 
@@ -355,34 +329,6 @@ export default function PericiaForm() {
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent" 
                               placeholder="2000.00"
-                              required 
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Prazo do Laudo
-                            </label>
-                            <input 
-                              type="date" 
-                              name="prazoLaudo" 
-                              value={formData.prazoLaudo} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent" 
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Prazo dos Quesitos
-                            </label>
-                            <input 
-                              type="date" 
-                              name="prazoQuesitos" 
-                              value={formData.prazoQuesitos} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent" 
                             />
                         </div>
                     </div>
@@ -403,7 +349,40 @@ export default function PericiaForm() {
                     </div>
                 </div>
 
-                {/* SEÇÃO 5: OBSERVAÇÕES */}
+                {/* SEÇÃO 5: PRAZOS */}
+                <div className="bg-orange-50 p-6 rounded-lg border-2 border-orange-200">
+                    <h3 className="font-bold text-lg mb-4 text-orange-800 flex items-center gap-2">
+                      ⏰ Prazos
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Prazo do Laudo
+                            </label>
+                            <input 
+                              type="date" 
+                              name="prazoLaudo" 
+                              value={formData.prazoLaudo} 
+                              onChange={handleChange} 
+                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Prazo dos Quesitos
+                            </label>
+                            <input 
+                              type="date" 
+                              name="prazoQuesitos" 
+                              value={formData.prazoQuesitos} 
+                              onChange={handleChange} 
+                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* SEÇÃO 6: OBSERVAÇÕES */}
                 <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-200">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       📝 Observações
