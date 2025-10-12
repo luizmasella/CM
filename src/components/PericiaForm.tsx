@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
+import { useToast } from '../context/ToastContext';
 import { PlusCircle, X } from 'lucide-react';
 import { tiposPericia as tiposDefault, regioesList } from '../config/constants';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia } = usePericias();
   const { editingId, closeForm } = useUI();
+  const { toast } = useToast();
   
   const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
@@ -56,8 +58,47 @@ export default function PericiaForm() {
     setFormData(prev => ({ ...prev, reclamadas: newReclamadas.length > 0 ? newReclamadas : [''] }));
   };
 
+  const validateForm = () => {
+    if (!formData.numeroProcesso || !formData.reclamante || !formData.data || 
+        !formData.hora || !formData.tipo || !formData.vara || !formData.juiz || 
+        !formData.local || !formData.regiao) {
+      toast.error('❌ Por favor, preencha todos os campos obrigatórios!');
+      return false;
+    }
+    
+    const reclamadasValidas = formData.reclamadas.filter(r => r.trim() !== '');
+    if (reclamadasValidas.length === 0) {
+      toast.error('❌ Adicione pelo menos uma reclamada!');
+      return false;
+    }
+    
+    const honorariosSol = parseFloat(formData.honorariosSolicitados);
+    const honorariosDef = parseFloat(formData.honorariosDeferidos);
+    
+    if (isNaN(honorariosSol) || honorariosSol < 0) {
+      toast.error('❌ Valor de honorários solicitados inválido!');
+      return false;
+    }
+    
+    if (isNaN(honorariosDef) || honorariosDef < 0) {
+      toast.error('❌ Valor de honorários deferidos inválido!');
+      return false;
+    }
+    
+    if (honorariosDef > honorariosSol) {
+      toast.warning('⚠️ Honorários deferidos não podem ser maiores que os solicitados!');
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
     
     const periciaData = { 
       ...formData, 
@@ -70,10 +111,10 @@ export default function PericiaForm() {
     
     if(editingId !== null) {
         updatePericia({ id: editingId, ...periciaData });
-        alert('Perícia atualizada com sucesso!');
+        toast.success('✅ Perícia atualizada com sucesso!');
     } else {
         addPericia(periciaData);
-        alert('Perícia cadastrada com sucesso!');
+        toast.success('✅ Perícia cadastrada com sucesso!');
     }
     closeForm();
   };
