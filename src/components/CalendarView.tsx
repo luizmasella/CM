@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { CalendarDays, ChevronRight, Calendar, AlertTriangle, XCircle, Clock, AlertCircle } from 'lucide-react';
 
 export default function CalendarView() {
-  const { pericias, periciasAtrasadas, prazos7Dias, prazos15Dias, setFilterDate, setFilterPrazo, setFilterStatus, isPrazoVencido, getPrazoStatus } = usePericias();
+  const { pericias, periciasAtrasadas, prazos7Dias, prazos15Dias, setFilterDate, setFilterPrazo, setFilterStatus, isPrazoVencido, clearAllFilters } = usePericias();
   const { setActiveTab, openProcessPage } = useUI();
   const { toast } = useToast();
   
@@ -47,8 +47,8 @@ export default function CalendarView() {
       return;
     }
     
-    setFilterStatus('todos');
-    setFilterPrazo('todos');
+    // CORREÇÃO: Limpa TODOS os filtros antes de aplicar o novo
+    clearAllFilters();
     setFilterDate(dateString);
     setActiveTab('pericias');
     
@@ -56,8 +56,8 @@ export default function CalendarView() {
   };
   
   const handlePrazosClick = (tipo: 'vencidos' | '7dias' | '15dias') => {
-    setFilterStatus('todos');
-    setFilterDate('');
+    // CORREÇÃO: Limpa TODOS os filtros antes de aplicar o novo
+    clearAllFilters();
     setFilterPrazo(tipo);
     setActiveTab('pericias');
     
