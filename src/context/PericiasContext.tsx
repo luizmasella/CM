@@ -1,6 +1,6 @@
 // FILE: src/context/PericiasContext.tsx
 
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { periciasIniciais } from '../config/initialData';
 
 // Tipos
@@ -46,30 +46,105 @@ interface IPericiasContext {
   prazos15Dias: Pericia[];
   isPrazoVencido: (prazo: string | null) => boolean;
   getPrazoStatus: (prazo: string | null) => 'vencido' | '7dias' | '15dias' | 'normal';
+  clearAllFilters: () => void;
+  exportData: () => string;
+  importData: (jsonString: string) => boolean;
+  clearAllData: () => void;
 }
 
 const PericiasContext = createContext<IPericiasContext | undefined>(undefined);
 
+const STORAGE_KEY = 'pericias_medicas_data';
+
 export function PericiasProvider({ children }: { children: ReactNode }) {
-  const [pericias, setPericias] = useState<Pericia[]>(periciasIniciais);
+  // Carrega dados do localStorage ou usa dados iniciais
+  const [pericias, setPericias] = useState<Pericia[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.length > 0 ? parsed : periciasIniciais;
+      }
+      return periciasIniciais;
+    } catch (error) {
+      console.error('Erro ao carregar dados do localStorage:', error);
+      return periciasIniciais;
+    }
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [filterDate, setFilterDate] = useState('');
   const [filterPrazo, setFilterPrazo] = useState('todos');
 
+  // Salva no localStorage sempre que pericias mudar
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(pericias));
+    } catch (error) {
+      console.error('Erro ao salvar no localStorage:', error);
+    }
+  }, [pericias]);
+
+  // Função para limpar TODOS os filtros de uma vez
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('todos');
+    setFilterDate('');
+    setFilterPrazo('todos');
+  };
+
   const addPericia = (novaPericia: Omit<Pericia, 'id'>) => { 
     const newId = pericias.length > 0 ? Math.max(...pericias.map(p => p.id)) + 1 : 1; 
-    setPericias(prev => [...prev, { id: newId, ...novaPericia }]); 
+    const now = new Date().toISOString();
+    const periciaComHistorico = {
+      ...novaPericia,
+      id: newId,
+      historico: [
+        { data: now, acao: 'Perícia cadastrada', usuario: 'Sistema' }
+      ]
+    };
+    setPericias(prev => [...prev, periciaComHistorico]); 
   };
   
   const updatePericia = (periciaAtualizada: Pericia) => { 
-    setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaAtualizada : p))); 
+    const now = new Date().toISOString();
+    const periciaComHistorico = {
+      ...periciaAtualizada,
+      historico: [
+        ...periciaAtualizada.historico,
+        { data: now, acao: 'Perícia atualizada', usuario: 'Sistema' }
+      ]
+    };
+    setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaComHistorico : p))); 
   };
   
   const deletePericia = (id: number) => { 
-    if (window.confirm('Deseja excluir esta perícia?')) { 
-      setPericias(prev => prev.filter(p => p.id !== id)); 
-    } 
+    setPericias(prev => prev.filter(p => p.id !== id)); 
+  };
+
+  // Sistema de Backup/Restauração
+  const exportData = (): string => {
+    return JSON.stringify(pericias, null, 2);
+  };
+
+  const importData = (jsonString: string): boolean => {
+    try {
+      const data = JSON.parse(jsonString);
+      if (Array.isArray(data)) {
+        setPericias(data);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erro ao importar dados:', error);
+      return false;
+    }
+  };
+
+  const clearAllData = () => {
+    setPericias(periciasIniciais);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const isPrazoVencido = (prazo: string | null): boolean => { 
@@ -82,7 +157,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     return dataPrazo < hoje; 
   };
 
-  // Nova função: verifica se prazo vence em X dias
   const diasParaPrazo = (prazo: string | null): number => {
     if (!prazo) return 999;
     const hoje = new Date();
@@ -95,7 +169,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     return diffDays;
   };
 
-  // Nova função: retorna status do prazo
   const getPrazoStatus = (prazo: string | null): 'vencido' | '7dias' | '15dias' | 'normal' => {
     if (!prazo) return 'normal';
     const dias = diasParaPrazo(prazo);
@@ -105,7 +178,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     return 'normal';
   };
 
-  // Perícias com prazos vencidos
   const periciasAtrasadas = useMemo(() => 
     pericias.filter(p => 
       (p.prazoLaudo && isPrazoVencido(p.prazoLaudo)) || 
@@ -114,7 +186,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     [pericias]
   );
 
-  // Perícias com prazos a vencer em 7 dias
   const prazos7Dias = useMemo(() => 
     pericias.filter(p => {
       const prazos = [p.prazoLaudo, p.prazoQuesitos].filter(Boolean);
@@ -126,7 +197,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     [pericias]
   );
 
-  // Perícias com prazos a vencer em 15 dias
   const prazos15Dias = useMemo(() => 
     pericias.filter(p => {
       const prazos = [p.prazoLaudo, p.prazoQuesitos].filter(Boolean);
@@ -214,7 +284,11 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     prazos7Dias,
     prazos15Dias,
     isPrazoVencido,
-    getPrazoStatus
+    getPrazoStatus,
+    clearAllFilters,
+    exportData,
+    importData,
+    clearAllData
   }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, periciasAtrasadas, prazos7Dias, prazos15Dias]);
 
   return <PericiasContext.Provider value={value}>{children}</PericiasContext.Provider>;
