@@ -1,7 +1,7 @@
 // FILE: src/context/UIContext.tsx
+// ✅ VERSÃO CORRIGIDA - openProcessPage agora funciona corretamente
 
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
-import { usePericias } from './PericiasContext';
 
 interface UIContextProps {
   activeTab: string;
@@ -40,18 +40,41 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setActiveTab('pericias');
   };
 
-  const handleShowNewForm = () => { setEditingId(null); setShowForm(true); };
-  const handleEdit = (pericia: any) => { setEditingId(pericia.id); setShowForm(true); };
-  const closeForm = () => { setShowForm(false); setEditingId(null); };
-  const handleViewDetails = (pericia: any) => { setSelectedPericia(pericia); setShowDetails(true); };
-  const closeDetails = () => { setShowDetails(false); setSelectedPericia(null); };
-  
-  const openProcessPage = (pericia: any) => { 
-    // Abre formulário de edição direto ao clicar no número do processo
-    handleEdit(pericia);
+  const handleShowNewForm = () => { 
+    setEditingId(null); 
+    setShowForm(true); 
+  };
+
+  const handleEdit = (pericia: any) => { 
+    setEditingId(pericia.id); 
+    setShowForm(true); 
+  };
+
+  const closeForm = () => { 
+    setShowForm(false); 
+    setEditingId(null); 
+  };
+
+  const handleViewDetails = (pericia: any) => { 
+    setSelectedPericia(pericia); 
+    setShowDetails(true); 
+  };
+
+  const closeDetails = () => { 
+    setShowDetails(false); 
+    setSelectedPericia(null); 
   };
   
-  const closeProcessPage = () => { setProcessDetailView(false); setCurrentPericia(null); };
+  // ✅ CORRIGIDO: Agora abre a página de detalhes completa
+  const openProcessPage = (pericia: any) => { 
+    setCurrentPericia(pericia); 
+    setProcessDetailView(true); 
+  };
+  
+  const closeProcessPage = () => { 
+    setProcessDetailView(false); 
+    setCurrentPericia(null); 
+  };
 
   const value = useMemo(() => ({ 
     activeTab, 
@@ -72,7 +95,16 @@ export function UIProvider({ children }: { children: ReactNode }) {
     showNotifications, 
     setShowNotifications, 
     handleCardClick 
-  }), [activeTab, showForm, editingId, showDetails, selectedPericia, processDetailView, currentPericia, showNotifications]);
+  }), [
+    activeTab, 
+    showForm, 
+    editingId, 
+    showDetails, 
+    selectedPericia, 
+    processDetailView, 
+    currentPericia, 
+    showNotifications
+  ]);
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
 }
