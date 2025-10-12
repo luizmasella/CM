@@ -20,12 +20,7 @@ export default function PericiaForm() {
     justicaGratuita: false, honorariosSolicitados: '', honorariosDeferidos: '',
     prazoLaudo: '', prazoQuesitos: '', observacoes: '', historico: []
   };
-  const [formData, setFormData] = useState(initialState);
-  const [tiposPericia] = useState(tiposDefault);
-    tipo: '', vara: '', juiz: '', local: '', regiao: '', status: 'aguarda_ato_pericial',
-    justicaGratuita: false, honorariosSolicitados: '', honorariosDeferidos: '',
-    prazoLaudo: '', prazoQuesitos: '', observacoes: '', historico: []
-  };
+  
   const [formData, setFormData] = useState(initialState);
   const [tiposPericia] = useState(tiposDefault);
 
@@ -76,7 +71,6 @@ export default function PericiaForm() {
       return;
     }
     
-    // 👇 ADICIONAR ESTA LINHA AQUI
     if (formData.regiao && !regioes.includes(formData.regiao)) {
       addRegiao(formData.regiao);
     }
@@ -172,6 +166,8 @@ export default function PericiaForm() {
                               placeholder="Digite ou selecione uma região..."
                             />
                         </div>
+                    </div>
+                </div>
 
                 <div className="bg-green-50 p-6 rounded-lg border-2 border-green-200">
                     <h3 className="font-bold text-lg mb-4 text-green-800 flex items-center gap-2">
@@ -408,7 +404,7 @@ export default function PericiaForm() {
                     <p className="text-xs text-gray-500 mt-1">Campo livre para anotações gerais sobre o processo</p>
                 </div>
 
-<div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
+                <div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
                     <button 
                       type="button" 
                       onClick={closeForm} 
