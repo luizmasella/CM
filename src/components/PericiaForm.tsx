@@ -1,4 +1,6 @@
 // FILE: src/components/PericiaForm.tsx
+// CORRIGIDO: Edição completa + Botão de Exclusão
+
 import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
@@ -6,12 +8,12 @@ import { useToast } from '../context/ToastContext';
 import { useRegioes } from '../context/RegioesContext';
 import Combobox from './Combobox';
 import ConfirmationModal from './ConfirmationModal';
-import { PlusCircle, X, AlertCircle } from 'lucide-react';
+import { PlusCircle, X, AlertCircle, Trash2 } from 'lucide-react';
 import { tiposPericia as tiposDefault, statusConfig } from '../config/constants';
 import { PericiaValidator } from '../utils/validation';
 
 export default function PericiaForm() {
-  const { pericias, addPericia, updatePericia } = usePericias();
+  const { pericias, addPericia, updatePericia, deletePericia } = usePericias();
   const { editingId, closeForm } = useUI();
   const { toast } = useToast();
   const { regioes, addRegiao } = useRegioes();
@@ -23,6 +25,10 @@ export default function PericiaForm() {
   
   // Modal de confirmação para cancelar
   const [showCancelModal, setShowCancelModal] = useState(false);
+  
+  // Modal de confirmação para EXCLUIR
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
@@ -340,6 +346,37 @@ export default function PericiaForm() {
     closeForm();
   };
 
+  // FUNÇÃO DE EXCLUSÃO
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (editingId === null) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      setTimeout(() => {
+        const success = deletePericia(editingId);
+        
+        if (success) {
+          setShowDeleteModal(false);
+          closeForm();
+          toast.success('✅ Perícia excluída com sucesso!');
+        } else {
+          setIsDeleting(false);
+          toast.error('❌ Erro ao excluir perícia. Tente novamente.');
+        }
+      }, 500);
+    } catch (error) {
+      console.error('Erro ao deletar:', error);
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      toast.error('❌ Erro inesperado ao excluir perícia!');
+    }
+  };
+
   const getFieldClassName = (fieldName: string) => {
     const baseClass = "w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors";
     
@@ -359,7 +396,9 @@ export default function PericiaForm() {
         <div className="bg-white rounded-lg shadow-2xl max-w-6xl w-full my-8 max-h-[95vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10 rounded-t-lg shadow-sm">
                 <div>
-                  <h2 className="text-2xl font-bold">{editingId ? 'Editar Perícia' : 'Nova Perícia'}</h2>
+                  <h2 className="text-2xl font-bold">
+                    {editingId ? '✏️ Editar Perícia' : '➕ Nova Perícia'}
+                  </h2>
                   <p className="text-sm text-gray-500 mt-1">
                     Apenas o número do processo é obrigatório. <span className="text-red-500">*</span>
                   </p>
@@ -367,7 +406,7 @@ export default function PericiaForm() {
                 <button 
                   onClick={handleCancelClick} 
                   className="text-gray-500 hover:text-gray-800 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isDeleting}
                 >
                   <X size={24} />
                 </button>
@@ -391,7 +430,7 @@ export default function PericiaForm() {
                               onBlur={() => handleBlur('numeroProcesso')}
                               className={getFieldClassName('numeroProcesso')}
                               placeholder="0000000-00.0000.0.00.0000"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('numeroProcesso') && errors.numeroProcesso && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1 animate-pulse">
@@ -412,7 +451,7 @@ export default function PericiaForm() {
                               onChange={handleChange} 
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                               placeholder="1ª Vara do Trabalho"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                         </div>
                     </div>
@@ -430,7 +469,7 @@ export default function PericiaForm() {
                               onBlur={() => handleBlur('juiz')}
                               className={getFieldClassName('juiz')}
                               placeholder="Dr(a). Nome Completo"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('juiz') && errors.juiz && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -468,7 +507,7 @@ export default function PericiaForm() {
                           onBlur={() => handleBlur('reclamante')}
                           className={getFieldClassName('reclamante')}
                           placeholder="Nome completo do reclamante"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || isDeleting}
                         />
                         {touchedFields.has('reclamante') && errors.reclamante && (
                           <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -491,7 +530,7 @@ export default function PericiaForm() {
                                   onBlur={() => handleBlur('reclamadas')}
                                   className={getFieldClassName('reclamadas')}
                                   placeholder={`Nome da reclamada ${index + 1}`}
-                                  disabled={isSubmitting}
+                                  disabled={isSubmitting || isDeleting}
                                 />
                                 {formData.reclamadas.length > 1 && (
                                     <button 
@@ -499,7 +538,7 @@ export default function PericiaForm() {
                                       onClick={() => removeReclamadaField(index)} 
                                       className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded-lg transition-colors"
                                       title="Remover reclamada"
-                                      disabled={isSubmitting}
+                                      disabled={isSubmitting || isDeleting}
                                     >
                                       <X size={20} />
                                     </button>
@@ -516,7 +555,7 @@ export default function PericiaForm() {
                           type="button" 
                           onClick={addReclamadaField} 
                           className="mt-2 text-sm text-green-600 hover:text-green-800 flex items-center gap-1 font-medium hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || isDeleting}
                         >
                           <PlusCircle size={16} /> Adicionar outra reclamada
                         </button>
@@ -539,7 +578,7 @@ export default function PericiaForm() {
                               onChange={handleChange}
                               onBlur={() => handleBlur('data')}
                               className={getFieldClassName('data')}
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('data') && errors.data && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -559,7 +598,7 @@ export default function PericiaForm() {
                               onChange={handleChange}
                               onBlur={() => handleBlur('hora')}
                               className={getFieldClassName('hora')}
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('hora') && errors.hora && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -580,7 +619,7 @@ export default function PericiaForm() {
                               className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
                               list="tipos-pericia" 
                               placeholder="Ex: Médica, Ortopédica..."
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             <datalist id="tipos-pericia">
                                 {tiposPericia.map(t => <option key={t} value={t} />)}
@@ -599,7 +638,7 @@ export default function PericiaForm() {
                           onChange={handleChange} 
                           className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
                           placeholder="Ex: Fórum Central, Hospital das Clínicas, Consultório..."
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || isDeleting}
                         />
                     </div>
                 </div>
@@ -618,7 +657,7 @@ export default function PericiaForm() {
                           value={formData.status} 
                           onChange={handleChange} 
                           className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || isDeleting}
                         >
                           {Object.entries(statusConfig).map(([key, config]) => (
                             <option key={key} value={key}>{config.label}</option>
@@ -641,7 +680,7 @@ export default function PericiaForm() {
                               onBlur={() => handleBlur('honorariosSolicitados')}
                               className={getFieldClassName('honorariosSolicitados')}
                               placeholder="Ex: 2500.00"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('honorariosSolicitados') && errors.honorariosSolicitados && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -664,7 +703,7 @@ export default function PericiaForm() {
                               onBlur={() => handleBlur('honorariosDeferidos')}
                               className={getFieldClassName('honorariosDeferidos')}
                               placeholder="Ex: 2000.00"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('honorariosDeferidos') && errors.honorariosDeferidos && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -683,7 +722,7 @@ export default function PericiaForm() {
                               checked={formData.justicaGratuita} 
                               onChange={handleChange} 
                               className="rounded w-5 h-5 text-yellow-600 focus:ring-2 focus:ring-yellow-500"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             <span className="text-sm font-medium text-gray-700">
                               ⚖️ Processo com Justiça Gratuita
@@ -708,7 +747,7 @@ export default function PericiaForm() {
                               onChange={handleChange}
                               onBlur={() => handleBlur('prazoLaudo')}
                               className={getFieldClassName('prazoLaudo')}
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('prazoLaudo') && errors.prazoLaudo && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -729,7 +768,7 @@ export default function PericiaForm() {
                               onChange={handleChange}
                               onBlur={() => handleBlur('prazoQuesitos')}
                               className={getFieldClassName('prazoQuesitos')}
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isDeleting}
                             />
                             {touchedFields.has('prazoQuesitos') && errors.prazoQuesitos && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -753,36 +792,51 @@ export default function PericiaForm() {
                       rows={5} 
                       className="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-gray-400 focus:border-transparent" 
                       placeholder="Informações adicionais, observações importantes, detalhes do caso, contatos relevantes, etc..."
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isDeleting}
                     ></textarea>
                     <p className="text-xs text-gray-500 mt-1">Campo livre para anotações gerais sobre o processo</p>
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
-                    <button 
-                      type="button" 
-                      onClick={handleCancelClick} 
-                      className="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
-                      disabled={isSubmitting}
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      type="submit"
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          Salvando...
-                        </>
-                      ) : (
-                        <>
-                          {editingId ? '💾 Salvar Alterações' : '✅ Cadastrar Perícia'}
-                        </>
-                      )}
-                    </button>
+                <div className="flex justify-between gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
+                    {/* BOTÃO EXCLUIR (só aparece em modo edição) */}
+                    {editingId !== null && (
+                      <button 
+                        type="button"
+                        onClick={handleDeleteClick}
+                        className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all shadow-md font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isSubmitting || isDeleting}
+                      >
+                        <Trash2 size={18} />
+                        {isDeleting ? 'Excluindo...' : 'Excluir Perícia'}
+                      </button>
+                    )}
+                    
+                    <div className="flex gap-4 ml-auto">
+                      <button 
+                        type="button" 
+                        onClick={handleCancelClick} 
+                        className="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+                        disabled={isSubmitting || isDeleting}
+                      >
+                        Cancelar
+                      </button>
+                      <button 
+                        type="submit"
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isSubmitting || isDeleting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            {editingId ? '💾 Salvar Alterações' : '✅ Cadastrar Perícia'}
+                          </>
+                        )}
+                      </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -797,6 +851,18 @@ export default function PericiaForm() {
           onConfirm={confirmCancel}
           onCancel={() => setShowCancelModal(false)}
           type="warning"
+        />
+
+        {/* Modal de Confirmação de Exclusão */}
+        <ConfirmationModal
+          isOpen={showDeleteModal}
+          title="Excluir Perícia?"
+          message={`Tem certeza que deseja excluir permanentemente a perícia do processo:\n\n${formData.numeroProcesso}\n\nReclamante: ${formData.reclamante}\n\nEsta ação NÃO pode ser desfeita!`}
+          confirmText={isDeleting ? "Excluindo..." : "Sim, excluir"}
+          cancelText="Cancelar"
+          onConfirm={confirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+          type="danger"
         />
     </div>
   );
