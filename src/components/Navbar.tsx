@@ -1,4 +1,4 @@
-// FILE: src/components/Navbar.tsx (APAGUE TUDO E COLE ISTO)
+// FILE: src/components/Navbar.tsx
 
 import React from 'react';
 import { useUI } from '../context/UIContext';
