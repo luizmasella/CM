@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useUI } from './context/UIContext';
+
+// Nossos Componentes
 import Header from './components/Header';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
@@ -21,10 +23,12 @@ export default function App() {
     showDetails,
   } = useUI();
   
+  // Se a tela de detalhes do processo estiver aberta, ela tem prioridade máxima
   if (processDetailView) {
     return <ProcessDetailPage />
   }
 
+  // Senão, mostramos a interface principal com as abas
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
@@ -37,6 +41,7 @@ export default function App() {
         {activeTab === 'notificacoes' && <NotificacoesPage />}
       </main>
 
+      {/* Os modais são renderizados por cima de tudo quando ativos */}
       {showForm && <PericiaForm />}
       {showDetails && <PericiaDetails />}
     </div>
