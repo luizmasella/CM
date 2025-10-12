@@ -6,18 +6,22 @@ import { useUI } from '../context/UIContext';
 import { TrendingUp, FileText, Calendar, AlertTriangle, Clock, Target, CheckCircle, DollarSign, FileQuestion, Gavel, AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
-    const { stats, periciasAtrasadas, prazos7Dias, prazos15Dias, setFilterStatus, setFilterDate, setFilterPrazo } = usePericias();
+    const { stats, periciasAtrasadas, prazos7Dias, prazos15Dias, setFilterStatus, setFilterDate, setFilterPrazo, clearAllFilters } = usePericias();
     const { setActiveTab } = useUI();
 
     const handleCardClick = (filterType: string, value: string | null) => {
-        // Zera outros filtros para evitar conflitos
-        setFilterStatus('todos');
-        setFilterDate('');
-        setFilterPrazo('todos');
-
-        if (filterType === 'status') { setFilterStatus(value || 'todos'); }
-        if (filterType === 'hoje') { setFilterDate(new Date().toISOString().split('T')[0]); }
-        if (filterType === 'prazo') { setFilterPrazo(value || 'todos'); }
+        // CORREÇÃO: Limpa TODOS os filtros antes de aplicar novo
+        clearAllFilters();
+        
+        if (filterType === 'status') { 
+            setFilterStatus(value || 'todos'); 
+        }
+        if (filterType === 'hoje') { 
+            setFilterDate(new Date().toISOString().split('T')[0]); 
+        }
+        if (filterType === 'prazo') { 
+            setFilterPrazo(value || 'todos'); 
+        }
         
         setActiveTab('pericias');
     };
@@ -34,7 +38,7 @@ export default function Dashboard() {
           {/* CARDS PRINCIPAIS */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div 
-              onClick={() => handleCardClick('total', null)} 
+              onClick={() => { clearAllFilters(); setActiveTab('pericias'); }} 
               className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl text-white cursor-pointer hover:shadow-xl transition-shadow"
             >
               <div className="flex justify-between items-center">
