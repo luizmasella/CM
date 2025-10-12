@@ -1,4 +1,4 @@
-// FILE: src/components/PericiaForm.tsx
+// FILE: src/components/PericiaForm.tsx (VERSÃO COMPLETA E CORRIGIDA)
 
 import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -27,6 +27,8 @@ export default function PericiaForm() {
             ...periciaToEdit,
             honorariosSolicitados: String(periciaToEdit.honorariosSolicitados),
             honorariosDeferidos: String(periciaToEdit.honorariosDeferidos),
+            prazoLaudo: periciaToEdit.prazoLaudo || '',
+            prazoQuesitos: periciaToEdit.prazoQuesitos || '',
         });
       }
     } else {
@@ -60,8 +62,10 @@ export default function PericiaForm() {
     const periciaData = { ...formData, honorariosSolicitados: parseFloat(formData.honorariosSolicitados) || 0, honorariosDeferidos: parseFloat(formData.honorariosDeferidos) || 0, reclamadas: formData.reclamadas.filter(r => r.trim() !== ''), };
     if(editingId !== null) {
         updatePericia({ id: editingId, ...periciaData });
+        alert('Perícia atualizada com sucesso!');
     } else {
         addPericia(periciaData);
+        alert('Perícia cadastrada com sucesso!');
     }
     closeForm();
   };
@@ -69,7 +73,7 @@ export default function PericiaForm() {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
         <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
                 <h2 className="text-2xl font-bold">{editingId ? 'Editar Perícia' : 'Nova Perícia'}</h2>
                 <button onClick={closeForm} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
             </div>
