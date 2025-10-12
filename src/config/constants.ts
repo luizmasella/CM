@@ -13,4 +13,14 @@ export const statusConfig = {
 
 export const tiposPericia = ['Médica', 'Psiquiátrica', 'Ortopédica', 'Cardiológica', 'Neurológica'];
 
-// regioesList foi REMOVIDO ❌
+export const regioesList = [
+  'TRT 1ª Região - RJ',
+  'TRT 2ª Região - SP',
+  'TRT 3ª Região - MG',
+  'TRT 4ª Região - RS',
+  'TRT 5ª Região - BA',
+  'TRT 15ª Região - Campinas',
+  'TJ-SP',
+  'TJ-RJ',
+  'TJ-MG',
+];
