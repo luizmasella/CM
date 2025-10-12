@@ -3,11 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
+import { useRegioes } from '../context/RegioesContext';
+import Combobox from './Combobox';
 import { PlusCircle, X } from 'lucide-react';
-import { tiposPericia as tiposDefault, regioesList, statusConfig } from '../config/constants';
+import { tiposPericia as tiposDefault, statusConfig } from '../config/constants';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia } = usePericias();
+  const { editingId, closeForm } = useUI();
+  const { toast } = useToast();
+  const { regioes, addRegiao } = useRegioes();
   const { editingId, closeForm } = useUI();
   const { toast } = useToast();
   
