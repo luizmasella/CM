@@ -1,5 +1,4 @@
 // FILE: src/components/PericiaDetails.tsx
-
 import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
@@ -7,7 +6,7 @@ import { statusConfig, tiposPericia } from '../config/constants';
 import { Edit2, X, AlertTriangle, User, Calendar, Briefcase, DollarSign, ClipboardList, Clock } from 'lucide-react';
 
 export default function PericiaDetails() {
-  const { updatePericia } = usePericias();
+  const { updatePericia, isPrazoVencido } = usePericias();
   const { showDetails, selectedPericia, closeDetails } = useUI();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -16,8 +15,7 @@ export default function PericiaDetails() {
   useEffect(() => { if (selectedPericia) { setEditData(selectedPericia); } }, [selectedPericia]);
   if (!showDetails || !selectedPericia) { return null; }
 
-  const handleSave = () => { updatePericia(editData); setIsEditing(false); alert('Alterações salvas!'); };
-  const isPrazoVencido = (prazo: string | null): boolean => { if (!prazo) return false; const hoje = new Date(); hoje.setHours(0, 0, 0, 0); const [ano, mes, dia] = prazo.split('-').map(Number); return new Date(ano, mes - 1, dia) < hoje; };
+  const handleSave = () => { updatePericia(editData); setIsEditing(false); };
   const diasAtraso = (prazo: string | null): number => { if (!prazo) return 0; const hoje = new Date(); hoje.setHours(0, 0, 0, 0); const [ano, mes, dia] = prazo.split('-').map(Number); const dataPrazo = new Date(ano, mes - 1, dia); const diffTime = hoje.getTime() - dataPrazo.getTime(); const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); return diffDays > 0 ? diffDays : 0; };
 
   return (
@@ -40,16 +38,16 @@ export default function PericiaDetails() {
                 <div><label className="block text-sm font-medium mb-2">Status</label><select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">{Object.entries(statusConfig).map(([key, config]) => <option key={key} value={key}>{config.label}</option>)}</select></div>
               </div>
               <div className="flex gap-3">
-                <button onClick={handleSave} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Salvar Alterações</button>
-                <button onClick={() => { setEditData(selectedPericia); setIsEditing(false); }} className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400">Cancelar</button>
+                <button onClick={handleSave} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Salvar</button>
+                <button onClick={() => { setEditData(selectedPericia); setIsEditing(false); }} className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg">Cancelar</button>
               </div>
             </div>
           ) : (
             <div className="space-y-6">
-              {(isPrazoVencido(selectedPericia.prazoLaudo) || isPrazoVencido(selectedPericia.prazoQuesitos)) && <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 flex items-center gap-3"><AlertTriangle className="text-red-600" size={24} /><div><p className="font-semibold text-red-800">Atenção: Prazo Vencido!</p>{isPrazoVencido(selectedPericia.prazoLaudo) && <p className="text-sm text-red-700">Prazo do laudo vencido há {diasAtraso(selectedPericia.prazoLaudo)} dias</p>}{isPrazoVencido(selectedPericia.prazoQuesitos) && <p className="text-sm text-red-700">Prazo dos quesitos vencido há {diasAtraso(selectedPericia.prazoQuesitos)} dias</p>}</div></div>}
+              {(isPrazoVencido(selectedPericia.prazoLaudo) || isPrazoVencido(selectedPericia.prazoQuesitos)) && <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 flex items-center gap-3"><AlertTriangle className="text-red-600" size={24} /><div><p className="font-semibold text-red-800">Prazo Vencido!</p>{isPrazoVencido(selectedPericia.prazoLaudo) && <p>Laudo vencido há {diasAtraso(selectedPericia.prazoLaudo)} dias</p>}{isPrazoVencido(selectedPericia.prazoQuesitos) && <p>Quesitos vencido há {diasAtraso(selectedPericia.prazoQuesitos)} dias</p>}</div></div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 p-4 rounded-lg"><h4 className="font-semibold mb-3 flex items-center gap-2"><User size={18} /> Partes</h4><p className="text-sm text-gray-600">Reclamante</p><p className="font-medium">{selectedPericia.reclamante}</p><p className="text-sm text-gray-600 mt-2">Reclamada(s)</p>{selectedPericia.reclamadas.map((rec: string, idx: number) => <p key={idx} className="font-medium">• {rec}</p>)}</div>
-                <div className="bg-gray-50 p-4 rounded-lg"><h4 className="font-semibold mb-3 flex items-center gap-2"><Calendar size={18} /> Datas e Prazos</h4><p className="text-sm text-gray-600">Data da Perícia</p><p className="font-medium">{new Date(selectedPericia.data).toLocaleDateString('pt-BR')} às {selectedPericia.hora}</p></div>
+                <div className="bg-gray-50 p-4 rounded-lg"><h4 className="font-semibold mb-3 flex items-center gap-2"><User size={18} /> Partes</h4><p>Reclamante: <span className="font-medium">{selectedPericia.reclamante}</span></p><p>Reclamada(s):</p>{selectedPericia.reclamadas.map((r: string) => <p key={r} className="font-medium ml-2">• {r}</p>)}</div>
+                <div className="bg-gray-50 p-4 rounded-lg"><h4 className="font-semibold mb-3 flex items-center gap-2"><Calendar size={18} /> Datas</h4><p>Data da Perícia: <span className="font-medium">{new Date(selectedPericia.data).toLocaleDateString('pt-BR')}</span></p>{selectedPericia.prazoLaudo && <p>Prazo do Laudo: <span className="font-medium">{new Date(selectedPericia.prazoLaudo).toLocaleDateString('pt-BR')}</span></p>}</div>
               </div>
             </div>
           )}
