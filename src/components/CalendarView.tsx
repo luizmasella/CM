@@ -6,7 +6,7 @@ import { useUI } from '../context/UIContext';
 import { CalendarDays, ChevronRight, Calendar, AlertTriangle, XCircle, Clock } from 'lucide-react';
 
 export default function CalendarView() {
-  const { pericias, periciasAtrasadas, setFilterDate, setFilterPrazo, isPrazoVencido } = usePericias();
+  const { pericias, periciasAtrasadas, setFilterDate, setFilterPrazo, setFilterStatus } = usePericias();
   const { setActiveTab, openProcessPage } = useUI();
   
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
@@ -47,13 +47,31 @@ export default function CalendarView() {
   const goToToday = () => setCurrentMonth(new Date());
 
   const handleDayClick = (dateString: string) => {
+    // Limpa todos os filtros primeiro
+    setFilterStatus('todos');
+    setFilterPrazo('todos');
+    // Aplica filtro de data
     setFilterDate(dateString);
     setActiveTab('pericias');
   };
   
   const handlePrazosVencidosClick = () => {
+    // Limpa outros filtros
+    setFilterStatus('todos');
+    setFilterDate('');
+    // Aplica filtro de prazos vencidos
     setFilterPrazo('vencidos');
     setActiveTab('pericias');
+  };
+
+  const isPrazoVencido = (prazo: string | null): boolean => {
+    if (!prazo) return false;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const [ano, mes, dia] = prazo.split('-').map(Number);
+    const dataPrazo = new Date(ano, mes - 1, dia);
+    dataPrazo.setHours(0, 0, 0, 0);
+    return dataPrazo < hoje;
   };
 
   // NOVA FUNÇÃO: Prazos próximos (7 dias)
@@ -284,7 +302,7 @@ export default function CalendarView() {
               {periciasAtrasadas.slice(0, 5).map(p => (
                 <div 
                   key={p.id} 
-                  onClick={handlePrazosVencidosClick} 
+                  onClick={handlePrazosVencidosClick}
                   className="p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer transition-colors border border-red-200 animate-pulse"
                 >
                   <p className="font-semibold text-sm text-red-800">{p.numeroProcesso}</p>
