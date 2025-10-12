@@ -1,8 +1,8 @@
-// FILE: src/App.tsx (A VERSÃO MAIS LIMPA DE TODAS)
+// FILE: src/App.tsx (VERSÃO FINAL CORRIGIDA)
 
 import React from 'react';
 import { usePericias } from './context/PericiasContext';
-import { useUI } from './context/UIContext'; // Importa nosso novo hook de UI
+import { useUI } from './context/UIContext';
 
 // Nossos Componentes
 import Header from './components/Header';
@@ -16,11 +16,10 @@ import ProcessDetailPage from './components/ProcessDetailPage';
 import RelatoriosPage from './components/RelatoriosPage';
 import NotificacoesPage from './components/NotificacoesPage';
 
-// Dados de Configuração (poderiam ir para um arquivo separado no futuro)
+// DADOS DE CONFIGURAÇÃO IMPORTADOS DO ARQUIVO DEDICADO
 import { statusConfig, tiposPericia, regioesList } from './config/constants';
 
 export default function App() {
-  // Pegando o estado da UI do UIContext
   const { 
     activeTab, 
     processDetailView, 
@@ -30,17 +29,39 @@ export default function App() {
     showDetails,
   } = useUI();
   
-  // Pegando o estado dos dados do PericiasContext
-  const { pericias, stats, periciasAtrasadas } = usePericias();
+  const { 
+    pericias, 
+    updatePericia,
+    filteredPericias, 
+    stats, 
+    periciasAtrasadas,
+  } = usePericias();
 
   // Funções e dados que ainda são necessários no nível do App
-  const isPrazoVencido = (prazo: string | null): boolean => { /* ... */ return false; }; // Simplificado
-  const diasAtraso = (prazo: string | null): number => { /* ... */ return 0; };
+  const isPrazoVencido = (prazo: string | null): boolean => { 
+    if (!prazo) return false;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const [ano, mes, dia] = prazo.split('-').map(Number);
+    const dataPrazo = new Date(ano, mes - 1, dia);
+    return dataPrazo < hoje;
+  };
+  const diasAtraso = (prazo: string | null): number => { 
+    if (!prazo) return 0;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const [ano, mes, dia] = prazo.split('-').map(Number);
+    const dataPrazo = new Date(ano, mes - 1, dia);
+    const diffTime = hoje.getTime() - dataPrazo.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
   const exportarRelatorio = () => alert('Exportando...');
 
   // Lógica de Notificações (ainda vive aqui por enquanto)
   const [notifications, setNotifications] = React.useState<any[]>([]);
-  const notificacoesNaoLidas = 0;
+  
+  // O restante do seu App.tsx que não mudou...
   
   if (processDetailView && currentPericia) {
     return (
@@ -58,9 +79,9 @@ export default function App() {
       <main className="container mx-auto px-4 py-8">
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'pericias' && <PericiasManager statusConfig={statusConfig} exportarRelatorio={exportarRelatorio} />}
-        {activeTab === 'calendario' && <CalendarView pericias={pericias} periciasAtrasadas={periciasAtrasadas} isPrazoVencido={isPrazoVencido} diasAtraso={diasAtraso} />}
+        {activeTab === 'calendario' && <CalendarView isPrazoVencido={isPrazoVencido} diasAtraso={diasAtraso} />}
         {activeTab === 'relatorios' && <RelatoriosPage stats={stats} exportarRelatorio={exportarRelatorio} />}
-        {activeTab === 'notificacoes' && <NotificacoesPage notifications={notifications} notificacoesNaoLidas={notificacoesNaoLidas} />}
+        {activeTab === 'notificacoes' && <NotificacoesPage notifications={notifications} />}
       </main>
 
       {showForm && <PericiaForm />}
