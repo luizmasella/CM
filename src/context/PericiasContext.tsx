@@ -1,8 +1,9 @@
 // FILE: src/context/PericiasContext.tsx
-// ATUALIZAÇÃO: Adicionado tratamento robusto de erros
+// ATUALIZADO: Tratamento de erros robusto em TODAS as operações
 
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { periciasIniciais } from '../config/initialData';
+import { errorHandler, ErrorCategory, ErrorSeverity, safeExecute } from '../utils/errorHandler';
 
 // Tipos
 interface Pericia { 
@@ -57,15 +58,6 @@ const PericiasContext = createContext<IPericiasContext | undefined>(undefined);
 
 const STORAGE_KEY = 'pericias_medicas_data';
 
-// Função auxiliar para logs de erro (pode ser expandida para enviar para serviço de monitoramento)
-const logError = (context: string, error: any) => {
-  console.error(`[PericiasContext - ${context}]`, {
-    message: error?.message || 'Erro desconhecido',
-    error,
-    timestamp: new Date().toISOString()
-  });
-};
-
 export function PericiasProvider({ children }: { children: ReactNode }) {
   const [pericias, setPericias] = useState<Pericia[]>(() => {
     try {
@@ -73,22 +65,29 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         
-        // Validação básica dos dados
         if (!Array.isArray(parsed)) {
-          logError('InitialLoad', new Error('Dados armazenados não são um array'));
+          errorHandler.logError(
+            ErrorCategory.STORAGE,
+            ErrorSeverity.MEDIUM,
+            'InitialLoad',
+            new Error('Dados armazenados não são um array'),
+            'Dados corrompidos. Usando dados iniciais.'
+          );
           return periciasIniciais;
         }
         
-        // Valida estrutura básica de cada perícia
         const isValid = parsed.every(p => 
-          p && 
-          typeof p === 'object' && 
-          'id' in p && 
-          'numeroProcesso' in p
+          p && typeof p === 'object' && 'id' in p && 'numeroProcesso' in p
         );
         
         if (!isValid) {
-          logError('InitialLoad', new Error('Estrutura de dados inválida'));
+          errorHandler.logError(
+            ErrorCategory.STORAGE,
+            ErrorSeverity.MEDIUM,
+            'InitialLoad',
+            new Error('Estrutura de dados inválida'),
+            'Estrutura inválida. Usando dados iniciais.'
+          );
           return periciasIniciais;
         }
         
@@ -96,8 +95,13 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       }
       return periciasIniciais;
     } catch (error) {
-      logError('InitialLoad', error);
-      // Em caso de erro, retorna dados iniciais
+      errorHandler.logError(
+        ErrorCategory.STORAGE,
+        ErrorSeverity.HIGH,
+        'InitialLoad',
+        error,
+        'Erro ao carregar dados. Usando dados iniciais.'
+      );
       return periciasIniciais;
     }
   });
@@ -107,33 +111,45 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
   const [filterDate, setFilterDate] = useState('');
   const [filterPrazo, setFilterPrazo] = useState('todos');
 
-  // Salvamento automático com tratamento de erro
+  // Salvamento automático com tratamento de erro robusto
   useEffect(() => {
-    try {
-      const dataToSave = JSON.stringify(pericias);
-      
-      // Verifica se há espaço disponível
-      if (dataToSave.length > 5000000) { // ~5MB
-        logError('AutoSave', new Error('Dados muito grandes para localStorage'));
-        console.warn('⚠️ Aviso: Quantidade de dados muito grande. Considere fazer backup!');
-        return;
-      }
-      
-      localStorage.setItem(STORAGE_KEY, dataToSave);
-    } catch (error) {
-      logError('AutoSave', error);
-      
+    const saveData = async () => {
+      const result = await safeExecute(
+        () => {
+          const dataToSave = JSON.stringify(pericias);
+          
+          // Verifica tamanho
+          if (dataToSave.length > 5000000) {
+            throw new Error('Dados muito grandes (>5MB)');
+          }
+          
+          localStorage.setItem(STORAGE_KEY, dataToSave);
+          return true;
+        },
+        'AutoSave',
+        ErrorCategory.STORAGE,
+        ErrorSeverity.MEDIUM
+      );
+
       // Se erro de quota, tenta limpar e salvar novamente
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
+      if (!result.success && result.error?.message.includes('QuotaExceededError')) {
         try {
           localStorage.clear();
           localStorage.setItem(STORAGE_KEY, JSON.stringify(pericias));
-          console.warn('⚠️ localStorage estava cheio. Dados foram limpos e salvos novamente.');
+          console.warn('⚠️ localStorage cheio. Dados limpos e salvos.');
         } catch (retryError) {
-          logError('AutoSave-Retry', retryError);
+          errorHandler.logError(
+            ErrorCategory.STORAGE,
+            ErrorSeverity.CRITICAL,
+            'AutoSave-Retry',
+            retryError,
+            'ERRO CRÍTICO: Não foi possível salvar dados!'
+          );
         }
       }
-    }
+    };
+
+    saveData();
   }, [pericias]);
 
   const clearAllFilters = () => {
@@ -143,15 +159,27 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       setFilterDate('');
       setFilterPrazo('todos');
     } catch (error) {
-      logError('ClearFilters', error);
+      errorHandler.logError(
+        ErrorCategory.USER_ACTION,
+        ErrorSeverity.LOW,
+        'ClearFilters',
+        error
+      );
     }
   };
 
   const addPericia = (novaPericia: Omit<Pericia, 'id'>): boolean => { 
     try {
-      // Validação básica
+      // Validação obrigatória
       if (!novaPericia.numeroProcesso || novaPericia.numeroProcesso.trim() === '') {
-        throw new Error('Número do processo é obrigatório');
+        errorHandler.logError(
+          ErrorCategory.VALIDATION,
+          ErrorSeverity.MEDIUM,
+          'AddPericia',
+          new Error('Número do processo obrigatório'),
+          'Número do processo é obrigatório.'
+        );
+        return false;
       }
       
       const newId = pericias.length > 0 ? Math.max(...pericias.map(p => p.id)) + 1 : 1; 
@@ -168,26 +196,31 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       setPericias(prev => [...prev, periciaComHistorico]);
       return true;
     } catch (error) {
-      logError('AddPericia', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'AddPericia',
+        error,
+        'Erro ao adicionar perícia. Tente novamente.'
+      );
       return false;
     }
   };
   
   const updatePericia = (periciaAtualizada: Pericia): boolean => { 
     try {
-      // Validação básica
+      // Validações
       if (!periciaAtualizada.id) {
-        throw new Error('ID da perícia é obrigatório para atualização');
+        throw new Error('ID da perícia obrigatório');
       }
       
-      if (!periciaAtualizada.numeroProcesso || periciaAtualizada.numeroProcesso.trim() === '') {
-        throw new Error('Número do processo é obrigatório');
+      if (!periciaAtualizada.numeroProcesso?.trim()) {
+        throw new Error('Número do processo obrigatório');
       }
       
-      // Verifica se a perícia existe
       const exists = pericias.some(p => p.id === periciaAtualizada.id);
       if (!exists) {
-        throw new Error(`Perícia com ID ${periciaAtualizada.id} não encontrada`);
+        throw new Error(`Perícia ID ${periciaAtualizada.id} não encontrada`);
       }
       
       const now = new Date().toISOString();
@@ -202,28 +235,38 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaComHistorico : p)));
       return true;
     } catch (error) {
-      logError('UpdatePericia', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'UpdatePericia',
+        error,
+        'Erro ao atualizar perícia. Tente novamente.'
+      );
       return false;
     }
   };
   
   const deletePericia = (id: number): boolean => { 
     try {
-      // Validação
       if (!id || id <= 0) {
         throw new Error('ID inválido para exclusão');
       }
       
-      // Verifica se a perícia existe
       const exists = pericias.some(p => p.id === id);
       if (!exists) {
-        throw new Error(`Perícia com ID ${id} não encontrada`);
+        throw new Error(`Perícia ID ${id} não encontrada`);
       }
       
       setPericias(prev => prev.filter(p => p.id !== id));
       return true;
     } catch (error) {
-      logError('DeletePericia', error);
+      errorHandler.logError(
+        ErrorCategory.USER_ACTION,
+        ErrorSeverity.HIGH,
+        'DeletePericia',
+        error,
+        'Erro ao excluir perícia. Tente novamente.'
+      );
       return false;
     }
   };
@@ -232,48 +275,53 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     try {
       const jsonString = JSON.stringify(pericias, null, 2);
       
-      // Validação do tamanho
       if (jsonString.length === 0) {
         throw new Error('Nenhum dado para exportar');
       }
       
       return jsonString;
     } catch (error) {
-      logError('ExportData', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.MEDIUM,
+        'ExportData',
+        error,
+        'Erro ao exportar dados.'
+      );
       return null;
     }
   };
 
   const importData = (jsonString: string): boolean => {
     try {
-      // Validação de entrada
-      if (!jsonString || jsonString.trim() === '') {
+      if (!jsonString?.trim()) {
         throw new Error('Dados de importação vazios');
       }
       
       const data = JSON.parse(jsonString);
       
-      // Validação de estrutura
       if (!Array.isArray(data)) {
         throw new Error('Formato inválido: esperado um array');
       }
       
-      // Validação de cada item
       const isValid = data.every(item => 
-        item && 
-        typeof item === 'object' && 
-        'id' in item && 
-        'numeroProcesso' in item
+        item && typeof item === 'object' && 'id' in item && 'numeroProcesso' in item
       );
       
       if (!isValid) {
-        throw new Error('Estrutura de dados inválida no arquivo');
+        throw new Error('Estrutura de dados inválida');
       }
       
       setPericias(data);
       return true;
     } catch (error) {
-      logError('ImportData', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'ImportData',
+        error,
+        'Erro ao importar dados. Verifique o arquivo.'
+      );
       return false;
     }
   };
@@ -284,7 +332,13 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(STORAGE_KEY);
       return true;
     } catch (error) {
-      logError('ClearAllData', error);
+      errorHandler.logError(
+        ErrorCategory.STORAGE,
+        ErrorSeverity.CRITICAL,
+        'ClearAllData',
+        error,
+        'ERRO ao limpar dados!'
+      );
       return false;
     }
   };
@@ -298,7 +352,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       const [ano, mes, dia] = prazo.split('-').map(Number);
       
-      // Validação de data
       if (isNaN(ano) || isNaN(mes) || isNaN(dia)) {
         throw new Error(`Data inválida: ${prazo}`);
       }
@@ -308,7 +361,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       return dataPrazo < hoje;
     } catch (error) {
-      logError('IsPrazoVencido', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'IsPrazoVencido',
+        error
+      );
       return false;
     }
   };
@@ -322,7 +380,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       const [ano, mes, dia] = prazo.split('-').map(Number);
       
-      // Validação de data
       if (isNaN(ano) || isNaN(mes) || isNaN(dia)) {
         throw new Error(`Data inválida: ${prazo}`);
       }
@@ -335,7 +392,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       return diffDays;
     } catch (error) {
-      logError('DiasParaPrazo', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'DiasParaPrazo',
+        error
+      );
       return 999;
     }
   };
@@ -352,7 +414,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       
       return 'normal';
     } catch (error) {
-      logError('GetPrazoStatus', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'GetPrazoStatus',
+        error
+      );
       return 'normal';
     }
   };
@@ -364,7 +431,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
         (p.prazoQuesitos && isPrazoVencido(p.prazoQuesitos))
       );
     } catch (error) {
-      logError('PericiasAtrasadas', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'PericiasAtrasadas',
+        error
+      );
       return [];
     }
   }, [pericias]);
@@ -379,7 +451,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
         });
       });
     } catch (error) {
-      logError('Prazos7Dias', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'Prazos7Dias',
+        error
+      );
       return [];
     }
   }, [pericias]);
@@ -394,7 +471,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
         });
       });
     } catch (error) {
-      logError('Prazos15Dias', error);
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'Prazos15Dias',
+        error
+      );
       return [];
     }
   }, [pericias]);
@@ -402,16 +484,13 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
   const filteredPericias = useMemo(() => {
     try {
       return pericias.filter(p => {
-        // FILTRO 1: Busca por texto
         const matchesSearch = (
           p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) || 
           p.reclamante.toLowerCase().includes(searchTerm.toLowerCase())
         );
         
-        // FILTRO 2: Status
         const matchesStatus = filterStatus === 'todos' || p.status === filterStatus;
         
-        // FILTRO 3: Data específica
         let matchesDate = true;
         if (filterDate !== '') {
           matchesDate = 
@@ -420,7 +499,6 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
             p.prazoQuesitos === filterDate;
         }
         
-        // FILTRO 4: Prazos
         let matchesPrazo = true;
         if (filterPrazo === 'vencidos') {
           matchesPrazo = (
@@ -444,8 +522,13 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
         return matchesSearch && matchesStatus && matchesDate && matchesPrazo;
       });
     } catch (error) {
-      logError('FilteredPericias', error);
-      return pericias; // Retorna todas em caso de erro
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.MEDIUM,
+        'FilteredPericias',
+        error
+      );
+      return pericias;
     }
   }, [pericias, searchTerm, filterStatus, filterDate, filterPrazo]);
 
@@ -469,52 +552,26 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
         totalHonorariosPagos: pericias.filter(p => p.status === 'concluida').reduce((sum, p) => sum + (p.honorariosDeferidos || 0), 0), 
       };
     } catch (error) {
-      logError('Stats', error);
-      // Retorna stats vazios em caso de erro
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.MEDIUM,
+        'Stats',
+        error
+      );
       return {
-        total: 0,
-        aguarda_ato_pericial: 0,
-        aguarda_laudo: 0,
-        aguarda_quesitos: 0,
-        aguarda_sentenca: 0,
-        aguarda_pagamento: 0,
-        concluidas: 0,
-        prazosVencidos: 0,
-        prazos7Dias: 0,
-        prazos15Dias: 0,
-        hojeAgendadas: 0,
-        totalHonorariosSolicitados: 0,
-        totalHonorariosDeferidos: 0,
-        honorariosAReceber: 0,
-        totalHonorariosPagos: 0,
+        total: 0, aguarda_ato_pericial: 0, aguarda_laudo: 0, aguarda_quesitos: 0,
+        aguarda_sentenca: 0, aguarda_pagamento: 0, concluidas: 0, prazosVencidos: 0,
+        prazos7Dias: 0, prazos15Dias: 0, hojeAgendadas: 0, totalHonorariosSolicitados: 0,
+        totalHonorariosDeferidos: 0, honorariosAReceber: 0, totalHonorariosPagos: 0
       };
     }
   }, [pericias, periciasAtrasadas, prazos7Dias, prazos15Dias]);
 
   const value = useMemo(() => ({ 
-    pericias, 
-    addPericia, 
-    updatePericia, 
-    deletePericia, 
-    searchTerm, 
-    setSearchTerm, 
-    filterStatus, 
-    setFilterStatus, 
-    filterDate, 
-    setFilterDate, 
-    filterPrazo, 
-    setFilterPrazo, 
-    filteredPericias, 
-    stats, 
-    periciasAtrasadas,
-    prazos7Dias,
-    prazos15Dias,
-    isPrazoVencido,
-    getPrazoStatus,
-    clearAllFilters,
-    exportData,
-    importData,
-    clearAllData
+    pericias, addPericia, updatePericia, deletePericia, searchTerm, setSearchTerm, 
+    filterStatus, setFilterStatus, filterDate, setFilterDate, filterPrazo, setFilterPrazo, 
+    filteredPericias, stats, periciasAtrasadas, prazos7Dias, prazos15Dias,
+    isPrazoVencido, getPrazoStatus, clearAllFilters, exportData, importData, clearAllData
   }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, periciasAtrasadas, prazos7Dias, prazos15Dias]);
 
   return <PericiasContext.Provider value={value}>{children}</PericiasContext.Provider>;
