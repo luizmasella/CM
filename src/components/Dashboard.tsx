@@ -9,7 +9,7 @@ export default function Dashboard() {
     const { setActiveTab } = useUI();
 
     const handleCardClick = (filterType: string, value: string | null) => {
-        // Futuramente, essa lógica de filtro também irá para o PericiasContext
+        // Futuramente, esta lógica de filtro também irá para o PericiasContext
         setActiveTab('pericias');
     };
 
