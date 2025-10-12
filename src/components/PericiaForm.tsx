@@ -7,6 +7,7 @@ import { useRegioes } from '../context/RegioesContext';
 import Combobox from './Combobox';
 import { PlusCircle, X, AlertCircle } from 'lucide-react';
 import { tiposPericia as tiposDefault, statusConfig } from '../config/constants';
+import { PericiaValidator } from '../utils/validation';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia } = usePericias();
@@ -15,7 +16,9 @@ export default function PericiaForm() {
   const { regioes, addRegiao } = useRegioes();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validator] = useState(() => new PericiaValidator());
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   
   const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
@@ -43,20 +46,135 @@ export default function PericiaForm() {
         setFormData(initialState);
     }
     setErrors({});
+    setTouchedFields(new Set());
   }, [editingId, pericias]);
+
+  // Marca campo como tocado ao perder foco
+  const handleBlur = (fieldName: string) => {
+    setTouchedFields(prev => new Set(prev).add(fieldName));
+    validateField(fieldName);
+  };
+
+  // Valida um campo específico
+  const validateField = (fieldName: string) => {
+    const newErrors = { ...errors };
+    
+    switch(fieldName) {
+      case 'numeroProcesso':
+        if (!validator.validateNumeroProcesso(formData.numeroProcesso)) {
+          newErrors.numeroProcesso = validator.getFieldError('numeroProcesso') || '';
+        } else {
+          delete newErrors.numeroProcesso;
+        }
+        break;
+      
+      case 'reclamante':
+        if (formData.reclamante.trim() !== '') {
+          if (!validator.validateNome('reclamante', formData.reclamante, 'Reclamante')) {
+            newErrors.reclamante = validator.getFieldError('reclamante') || '';
+          } else {
+            delete newErrors.reclamante;
+          }
+        } else {
+          delete newErrors.reclamante;
+        }
+        break;
+      
+      case 'juiz':
+        if (formData.juiz.trim() !== '') {
+          if (!validator.validateNome('juiz', formData.juiz, 'Juiz(a)')) {
+            newErrors.juiz = validator.getFieldError('juiz') || '';
+          } else {
+            delete newErrors.juiz;
+          }
+        } else {
+          delete newErrors.juiz;
+        }
+        break;
+      
+      case 'reclamadas':
+        const reclamadasValidas = formData.reclamadas.filter(r => r.trim() !== '');
+        if (reclamadasValidas.length > 0) {
+          if (!validator.validateReclamadas(formData.reclamadas)) {
+            newErrors.reclamadas = validator.getFieldError('reclamadas') || '';
+          } else {
+            delete newErrors.reclamadas;
+          }
+        } else {
+          delete newErrors.reclamadas;
+        }
+        break;
+      
+      case 'data':
+        if (formData.data) {
+          if (!validator.validateData(formData.data)) {
+            newErrors.data = validator.getFieldError('data') || '';
+          } else {
+            delete newErrors.data;
+          }
+        } else {
+          delete newErrors.data;
+        }
+        break;
+      
+      case 'hora':
+        if (formData.hora) {
+          if (!validator.validateHora(formData.hora)) {
+            newErrors.hora = validator.getFieldError('hora') || '';
+          } else {
+            delete newErrors.hora;
+          }
+        } else {
+          delete newErrors.hora;
+        }
+        break;
+      
+      case 'honorariosSolicitados':
+      case 'honorariosDeferidos':
+        if (formData.honorariosSolicitados || formData.honorariosDeferidos) {
+          if (!validator.validateHonorarios(formData.honorariosSolicitados, formData.honorariosDeferidos)) {
+            const errorSol = validator.getFieldError('honorariosSolicitados');
+            const errorDef = validator.getFieldError('honorariosDeferidos');
+            if (errorSol) newErrors.honorariosSolicitados = errorSol;
+            if (errorDef) newErrors.honorariosDeferidos = errorDef;
+          } else {
+            delete newErrors.honorariosSolicitados;
+            delete newErrors.honorariosDeferidos;
+          }
+        }
+        break;
+      
+      case 'prazoLaudo':
+      case 'prazoQuesitos':
+        if ((formData.prazoLaudo || formData.prazoQuesitos) && formData.data) {
+          if (!validator.validatePrazos(formData.prazoLaudo, formData.prazoQuesitos, formData.data)) {
+            const errorLaudo = validator.getFieldError('prazoLaudo');
+            const errorQuesitos = validator.getFieldError('prazoQuesitos');
+            if (errorLaudo) newErrors.prazoLaudo = errorLaudo;
+            if (errorQuesitos) newErrors.prazoQuesitos = errorQuesitos;
+          } else {
+            delete newErrors.prazoLaudo;
+            delete newErrors.prazoQuesitos;
+          }
+        }
+        break;
+    }
+    
+    setErrors(newErrors);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
-    // Limpa erro do campo ao digitar
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
     
     if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
         setFormData(prev => ({ ...prev, [name]: e.target.checked }));
     } else {
         setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
+    // Valida em tempo real se o campo já foi tocado
+    if (touchedFields.has(name)) {
+      setTimeout(() => validateField(name), 300);
     }
   };
 
@@ -65,9 +183,8 @@ export default function PericiaForm() {
     newReclamadas[index] = value;
     setFormData(prev => ({ ...prev, reclamadas: newReclamadas }));
     
-    // Limpa erro ao digitar
-    if (errors.reclamadas) {
-      setErrors(prev => ({ ...prev, reclamadas: '' }));
+    if (touchedFields.has('reclamadas')) {
+      setTimeout(() => validateField('reclamadas'), 300);
     }
   };
 
@@ -78,87 +195,70 @@ export default function PericiaForm() {
     setFormData(prev => ({ ...prev, reclamadas: newReclamadas.length > 0 ? newReclamadas : [''] }));
   };
 
-  // VALIDAÇÃO BÁSICA
+  // Validação completa do formulário
   const validateForm = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
+    validator.clearErrors();
     
-    // Número do processo (obrigatório)
-    if (!formData.numeroProcesso || formData.numeroProcesso.trim() === '') {
-      newErrors.numeroProcesso = 'Número do processo é obrigatório';
+    // Valida apenas número do processo como OBRIGATÓRIO
+    const isNumeroProcessoValid = validator.validateNumeroProcesso(formData.numeroProcesso);
+    
+    // Valida outros campos apenas se preenchidos
+    if (formData.reclamante.trim()) {
+      validator.validateNome('reclamante', formData.reclamante, 'Reclamante');
     }
     
-    // Reclamante (opcional mas se preenchido, mínimo 3 caracteres)
-    if (formData.reclamante && formData.reclamante.trim().length < 3) {
-      newErrors.reclamante = 'Nome deve ter no mínimo 3 caracteres';
+    if (formData.juiz.trim()) {
+      validator.validateNome('juiz', formData.juiz, 'Juiz(a)');
     }
     
-    // Reclamadas (opcional mas se preenchido, mínimo 3 caracteres)
     const reclamadasValidas = formData.reclamadas.filter(r => r.trim() !== '');
     if (reclamadasValidas.length > 0) {
-      for (let i = 0; i < reclamadasValidas.length; i++) {
-        if (reclamadasValidas[i].trim().length < 3) {
-          newErrors.reclamadas = 'Cada reclamada deve ter no mínimo 3 caracteres';
-          break;
-        }
-      }
+      validator.validateReclamadas(formData.reclamadas);
     }
     
-    // Data (opcional mas se preenchida, não pode ser muito antiga)
     if (formData.data) {
-      const dataPericia = new Date(formData.data);
-      const umAnoAtras = new Date();
-      umAnoAtras.setFullYear(umAnoAtras.getFullYear() - 1);
-      if (dataPericia < umAnoAtras) {
-        newErrors.data = 'Data muito antiga (máximo 1 ano atrás)';
-      }
+      validator.validateData(formData.data);
     }
     
-    // Honorários (se preenchidos, devem ser válidos)
-    if (formData.honorariosSolicitados) {
-      const valor = parseFloat(formData.honorariosSolicitados);
-      if (isNaN(valor) || valor < 0) {
-        newErrors.honorariosSolicitados = 'Valor inválido';
-      }
+    if (formData.hora) {
+      validator.validateHora(formData.hora);
     }
     
-    if (formData.honorariosDeferidos) {
-      const valorSol = parseFloat(formData.honorariosSolicitados) || 0;
-      const valorDef = parseFloat(formData.honorariosDeferidos);
-      if (isNaN(valorDef) || valorDef < 0) {
-        newErrors.honorariosDeferidos = 'Valor inválido';
-      } else if (valorDef > valorSol) {
-        newErrors.honorariosDeferidos = 'Não pode ser maior que o solicitado';
-      }
+    if (formData.honorariosSolicitados || formData.honorariosDeferidos) {
+      validator.validateHonorarios(
+        formData.honorariosSolicitados || '0',
+        formData.honorariosDeferidos || '0'
+      );
     }
     
-    // Prazos (se preenchidos e tem data, não podem ser antes da perícia)
-    if (formData.prazoLaudo && formData.data) {
-      const dataPer = new Date(formData.data);
-      const dataPrazo = new Date(formData.prazoLaudo);
-      if (dataPrazo < dataPer) {
-        newErrors.prazoLaudo = 'Não pode ser antes da data da perícia';
-      }
+    if ((formData.prazoLaudo || formData.prazoQuesitos) && formData.data) {
+      validator.validatePrazos(formData.prazoLaudo, formData.prazoQuesitos, formData.data);
     }
     
-    if (formData.prazoQuesitos && formData.data) {
-      const dataPer = new Date(formData.data);
-      const dataPrazo = new Date(formData.prazoQuesitos);
-      if (dataPrazo < dataPer) {
-        newErrors.prazoQuesitos = 'Não pode ser antes da data da perícia';
-      }
-    }
+    const validationErrors = validator.getErrors();
+    const errorsMap: {[key: string]: string} = {};
+    validationErrors.forEach(error => {
+      errorsMap[error.field] = error.message;
+    });
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(errorsMap);
+    
+    // Marca todos os campos como tocados ao tentar submeter
+    const allFields = new Set([
+      'numeroProcesso', 'reclamante', 'juiz', 'reclamadas', 
+      'data', 'hora', 'honorariosSolicitados', 'honorariosDeferidos',
+      'prazoLaudo', 'prazoQuesitos'
+    ]);
+    setTouchedFields(allFields);
+    
+    return validationErrors.length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação
     if (!validateForm()) {
       toast.error('❌ Corrija os erros no formulário!');
-      // Scroll para o primeiro erro
       const firstError = document.querySelector('.border-red-500');
       if (firstError) {
         firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -168,7 +268,6 @@ export default function PericiaForm() {
     
     setIsSubmitting(true);
     
-    // Simula um pequeno delay para mostrar loading
     setTimeout(() => {
       if (formData.regiao && !regioes.includes(formData.regiao)) {
         addRegiao(formData.regiao);
@@ -194,6 +293,20 @@ export default function PericiaForm() {
       setIsSubmitting(false);
       closeForm();
     }, 500);
+  };
+
+  const getFieldClassName = (fieldName: string) => {
+    const baseClass = "w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors";
+    
+    if (touchedFields.has(fieldName) && errors[fieldName]) {
+      return `${baseClass} border-red-500 bg-red-50`;
+    }
+    
+    if (touchedFields.has(fieldName) && !errors[fieldName]) {
+      return `${baseClass} border-green-500 bg-green-50`;
+    }
+    
+    return `${baseClass} border-gray-300`;
   };
 
   return (
@@ -229,19 +342,19 @@ export default function PericiaForm() {
                               type="text" 
                               name="numeroProcesso" 
                               value={formData.numeroProcesso} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                errors.numeroProcesso ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('numeroProcesso')}
+                              className={getFieldClassName('numeroProcesso')}
                               placeholder="0000000-00.0000.0.00.0000"
                               disabled={isSubmitting}
                             />
-                            {errors.numeroProcesso && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                            {touchedFields.has('numeroProcesso') && errors.numeroProcesso && (
+                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1 animate-pulse">
                                 <AlertCircle size={12} />
                                 {errors.numeroProcesso}
                               </p>
                             )}
+                            <p className="text-xs text-gray-500 mt-1">Formato CNJ: NNNNNNN-DD.AAAA.J.TT.OOOO</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -268,11 +381,18 @@ export default function PericiaForm() {
                               type="text" 
                               name="juiz" 
                               value={formData.juiz} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('juiz')}
+                              className={getFieldClassName('juiz')}
                               placeholder="Dr(a). Nome Completo"
                               disabled={isSubmitting}
                             />
+                            {touchedFields.has('juiz') && errors.juiz && (
+                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                                <AlertCircle size={12} />
+                                {errors.juiz}
+                              </p>
+                            )}
                         </div>
                         <div>
                             <Combobox
@@ -299,14 +419,13 @@ export default function PericiaForm() {
                           type="text" 
                           name="reclamante" 
                           value={formData.reclamante} 
-                          onChange={handleChange} 
-                          className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                            errors.reclamante ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          onChange={handleChange}
+                          onBlur={() => handleBlur('reclamante')}
+                          className={getFieldClassName('reclamante')}
                           placeholder="Nome completo do reclamante"
                           disabled={isSubmitting}
                         />
-                        {errors.reclamante && (
+                        {touchedFields.has('reclamante') && errors.reclamante && (
                           <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                             <AlertCircle size={12} />
                             {errors.reclamante}
@@ -323,10 +442,9 @@ export default function PericiaForm() {
                                 <input 
                                   type="text" 
                                   value={reclamada} 
-                                  onChange={(e) => handleReclamadaChange(index, e.target.value)} 
-                                  className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                                    errors.reclamadas ? 'border-red-500' : 'border-gray-300'
-                                  }`}
+                                  onChange={(e) => handleReclamadaChange(index, e.target.value)}
+                                  onBlur={() => handleBlur('reclamadas')}
+                                  className={getFieldClassName('reclamadas')}
                                   placeholder={`Nome da reclamada ${index + 1}`}
                                   disabled={isSubmitting}
                                 />
@@ -343,7 +461,7 @@ export default function PericiaForm() {
                                 )}
                             </div>
                         ))}
-                        {errors.reclamadas && (
+                        {touchedFields.has('reclamadas') && errors.reclamadas && (
                           <p className="text-xs text-red-600 mb-2 flex items-center gap-1">
                             <AlertCircle size={12} />
                             {errors.reclamadas}
@@ -373,13 +491,12 @@ export default function PericiaForm() {
                               type="date" 
                               name="data" 
                               value={formData.data} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                                errors.data ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('data')}
+                              className={getFieldClassName('data')}
                               disabled={isSubmitting}
                             />
-                            {errors.data && (
+                            {touchedFields.has('data') && errors.data && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                                 <AlertCircle size={12} />
                                 {errors.data}
@@ -394,10 +511,17 @@ export default function PericiaForm() {
                               type="time" 
                               name="hora" 
                               value={formData.hora} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('hora')}
+                              className={getFieldClassName('hora')}
                               disabled={isSubmitting}
                             />
+                            {touchedFields.has('hora') && errors.hora && (
+                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                                <AlertCircle size={12} />
+                                {errors.hora}
+                              </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -468,14 +592,13 @@ export default function PericiaForm() {
                               min="0"
                               name="honorariosSolicitados" 
                               value={formData.honorariosSolicitados} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent ${
-                                errors.honorariosSolicitados ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('honorariosSolicitados')}
+                              className={getFieldClassName('honorariosSolicitados')}
                               placeholder="Ex: 2500.00"
                               disabled={isSubmitting}
                             />
-                            {errors.honorariosSolicitados && (
+                            {touchedFields.has('honorariosSolicitados') && errors.honorariosSolicitados && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                                 <AlertCircle size={12} />
                                 {errors.honorariosSolicitados}
@@ -492,14 +615,13 @@ export default function PericiaForm() {
                               min="0"
                               name="honorariosDeferidos" 
                               value={formData.honorariosDeferidos} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent ${
-                                errors.honorariosDeferidos ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('honorariosDeferidos')}
+                              className={getFieldClassName('honorariosDeferidos')}
                               placeholder="Ex: 2000.00"
                               disabled={isSubmitting}
                             />
-                            {errors.honorariosDeferidos && (
+                            {touchedFields.has('honorariosDeferidos') && errors.honorariosDeferidos && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                                 <AlertCircle size={12} />
                                 {errors.honorariosDeferidos}
@@ -538,13 +660,12 @@ export default function PericiaForm() {
                               type="date" 
                               name="prazoLaudo" 
                               value={formData.prazoLaudo} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                                errors.prazoLaudo ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('prazoLaudo')}
+                              className={getFieldClassName('prazoLaudo')}
                               disabled={isSubmitting}
                             />
-                            {errors.prazoLaudo && (
+                            {touchedFields.has('prazoLaudo') && errors.prazoLaudo && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                                 <AlertCircle size={12} />
                                 {errors.prazoLaudo}
@@ -560,13 +681,12 @@ export default function PericiaForm() {
                               type="date" 
                               name="prazoQuesitos" 
                               value={formData.prazoQuesitos} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                                errors.prazoQuesitos ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              onChange={handleChange}
+                              onBlur={() => handleBlur('prazoQuesitos')}
+                              className={getFieldClassName('prazoQuesitos')}
                               disabled={isSubmitting}
                             />
-                            {errors.prazoQuesitos && (
+                            {touchedFields.has('prazoQuesitos') && errors.prazoQuesitos && (
                               <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                                 <AlertCircle size={12} />
                                 {errors.prazoQuesitos}
