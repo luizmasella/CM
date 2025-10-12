@@ -1,5 +1,5 @@
 // FILE: src/components/PericiaDetails.tsx
-// ATUALIZADO: Botão Editar agora abre o formulário completo de edição
+// CORREÇÃO FINAL - Agora chama o formulário correto!
 
 import React, { useState } from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -7,11 +7,11 @@ import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmationModal from './ConfirmationModal';
 import { statusConfig } from '../config/constants';
-import { Edit2, X, AlertTriangle, User, Calendar, Briefcase, DollarSign, ClipboardList, Clock, Trash2 } from 'lucide-react';
+import { Edit2, X, AlertTriangle, User, Calendar, Briefcase, DollarSign, Clock, Trash2 } from 'lucide-react';
 
 export default function PericiaDetails() {
   const { deletePericia, isPrazoVencido } = usePericias();
-  const { showDetails, selectedPericia, closeDetails, handleEdit: handleEditPericia } = useUI();
+  const { showDetails, selectedPericia, closeDetails, handleEdit, setActiveTab } = useUI();
   const { toast } = useToast();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -19,10 +19,11 @@ export default function PericiaDetails() {
 
   if (!showDetails || !selectedPericia) { return null; }
 
-  const handleEdit = () => {
-    // Fecha o modal de detalhes e abre o formulário de edição completo
+  const handleEditClick = () => {
+    // CORREÇÃO: Fecha modal e abre o FORMULÁRIO (PericiaForm.tsx)
     closeDetails();
-    handleEditPericia(selectedPericia);
+    handleEdit(selectedPericia); // Isso define editingId e abre showForm
+    toast.success('📝 Abrindo formulário de edição completo...');
   };
 
   const handleDelete = () => {
@@ -64,8 +65,6 @@ export default function PericiaDetails() {
     return diffDays > 0 ? diffDays : 0; 
   };
 
-  const StatusIcon = statusConfig[selectedPericia.status]?.icon;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -77,7 +76,7 @@ export default function PericiaDetails() {
             </div>
             <div className="flex gap-2">
               <button 
-                onClick={handleEdit}
+                onClick={handleEditClick}
                 className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                 disabled={isDeleting}
               >
@@ -126,8 +125,8 @@ export default function PericiaDetails() {
                 </h4>
                 <p className="mb-2"><strong>Reclamante:</strong> {selectedPericia.reclamante}</p>
                 <p><strong>Reclamada(s):</strong></p>
-                {selectedPericia.reclamadas.map((r: string) => (
-                  <p key={r} className="ml-2">• {r}</p>
+                {selectedPericia.reclamadas.map((r: string, idx: number) => (
+                  <p key={idx} className="ml-2">• {r}</p>
                 ))}
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
