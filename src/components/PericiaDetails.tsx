@@ -1,5 +1,4 @@
 // FILE: src/components/PericiaDetails.tsx
-// CORREÇÃO FINAL - Agora chama o formulário correto!
 
 import React, { useState } from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -20,10 +19,10 @@ export default function PericiaDetails() {
   if (!showDetails || !selectedPericia) { return null; }
 
   const handleEditClick = () => {
-    // CORREÇÃO: Fecha modal e abre o FORMULÁRIO (PericiaForm.tsx)
+    // Fecha o modal de detalhes
     closeDetails();
-    handleEdit(selectedPericia); // Isso define editingId e abre showForm
-    toast.success('📝 Abrindo formulário de edição completo...');
+    // Abre o formulário de edição completo (PericiaForm.tsx)
+    handleEdit(selectedPericia);
   };
 
   const handleDelete = () => {
