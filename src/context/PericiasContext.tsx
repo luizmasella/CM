@@ -4,8 +4,46 @@ import React, { createContext, useContext, useState, ReactNode, useMemo } from '
 import { periciasIniciais } from '../config/initialData';
 
 // Tipos
-interface Pericia { id: number; numeroProcesso: string; reclamante: string; reclamadas: string[]; data: string; hora: string; tipo: string; vara: string; juiz: string; local: string; regiao: string; status: string; justicaGratuita: boolean; honorariosSolicitados: number; honorariosDeferidos: number; prazoLaudo: string | null; prazoQuesitos: string | null; observacoes: string; historico: any[]; }
-interface IPericiasContext { pericias: Pericia[]; addPericia: (novaPericia: Omit<Pericia, 'id'>) => void; updatePericia: (periciaAtualizada: Pericia) => void; deletePericia: (id: number) => void; searchTerm: string; setSearchTerm: React.Dispatch<React.SetStateAction<string>>; filterStatus: string; setFilterStatus: React.Dispatch<React.SetStateAction<string>>; filterDate: string; setFilterDate: React.Dispatch<React.SetStateAction<string>>; filterPrazo: string; setFilterPrazo: React.Dispatch<React.SetStateAction<string>>; filteredPericias: Pericia[]; stats: any; periciasAtrasadas: Pericia[]; isPrazoVencido: (prazo: string | null) => boolean; }
+interface Pericia { 
+  id: number; 
+  numeroProcesso: string; 
+  reclamante: string; 
+  reclamadas: string[]; 
+  data: string; 
+  hora: string; 
+  tipo: string; 
+  vara: string; 
+  juiz: string; 
+  local: string; 
+  regiao: string; 
+  status: string; 
+  justicaGratuita: boolean; 
+  honorariosSolicitados: number; 
+  honorariosDeferidos: number; 
+  prazoLaudo: string | null; 
+  prazoQuesitos: string | null; 
+  observacoes: string; 
+  historico: any[]; 
+}
+
+interface IPericiasContext { 
+  pericias: Pericia[]; 
+  addPericia: (novaPericia: Omit<Pericia, 'id'>) => void; 
+  updatePericia: (periciaAtualizada: Pericia) => void; 
+  deletePericia: (id: number) => void; 
+  searchTerm: string; 
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>; 
+  filterStatus: string; 
+  setFilterStatus: React.Dispatch<React.SetStateAction<string>>; 
+  filterDate: string; 
+  setFilterDate: React.Dispatch<React.SetStateAction<string>>; 
+  filterPrazo: string; 
+  setFilterPrazo: React.Dispatch<React.SetStateAction<string>>; 
+  filteredPericias: Pericia[]; 
+  stats: any; 
+  periciasAtrasadas: Pericia[]; 
+  isPrazoVencido: (prazo: string | null) => boolean; 
+}
 
 const PericiasContext = createContext<IPericiasContext | undefined>(undefined);
 
@@ -16,33 +54,107 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
   const [filterDate, setFilterDate] = useState('');
   const [filterPrazo, setFilterPrazo] = useState('todos');
 
-  const addPericia = (novaPericia: Omit<Pericia, 'id'>) => { const newId = pericias.length > 0 ? Math.max(...pericias.map(p => p.id)) + 1 : 1; setPericias(prev => [...prev, { id: newId, ...novaPericia }]); };
-  const updatePericia = (periciaAtualizada: Pericia) => { setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaAtualizada : p))); };
-  const deletePericia = (id: number) => { if (window.confirm('Deseja excluir?')) { setPericias(prev => prev.filter(p => p.id !== id)); } };
+  const addPericia = (novaPericia: Omit<Pericia, 'id'>) => { 
+    const newId = pericias.length > 0 ? Math.max(...pericias.map(p => p.id)) + 1 : 1; 
+    setPericias(prev => [...prev, { id: newId, ...novaPericia }]); 
+  };
+  
+  const updatePericia = (periciaAtualizada: Pericia) => { 
+    setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaAtualizada : p))); 
+  };
+  
+  const deletePericia = (id: number) => { 
+    if (window.confirm('Deseja excluir?')) { 
+      setPericias(prev => prev.filter(p => p.id !== id)); 
+    } 
+  };
 
-  const isPrazoVencido = (prazo: string | null): boolean => { if (!prazo) return false; const hoje = new Date(); hoje.setHours(0, 0, 0, 0); const [ano, mes, dia] = prazo.split('-').map(Number); return new Date(ano, mes - 1, dia) < hoje; };
+  const isPrazoVencido = (prazo: string | null): boolean => { 
+    if (!prazo) return false; 
+    const hoje = new Date(); 
+    hoje.setHours(0, 0, 0, 0); 
+    const [ano, mes, dia] = prazo.split('-').map(Number); 
+    const dataPrazo = new Date(ano, mes - 1, dia);
+    dataPrazo.setHours(0, 0, 0, 0);
+    return dataPrazo < hoje; 
+  };
 
-  const periciasAtrasadas = useMemo(() => pericias.filter(p => (p.status === 'aguarda_laudo' && isPrazoVencido(p.prazoLaudo)) || (p.status === 'aguarda_quesitos' && isPrazoVencido(p.prazoQuesitos))), [pericias]);
+  const periciasAtrasadas = useMemo(() => 
+    pericias.filter(p => 
+      (p.prazoLaudo && isPrazoVencido(p.prazoLaudo)) || 
+      (p.prazoQuesitos && isPrazoVencido(p.prazoQuesitos))
+    ), 
+    [pericias]
+  );
   
   const filteredPericias = useMemo(() => {
     return pericias.filter(p => {
-      const matchesSearch = (p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) || p.reclamante.toLowerCase().includes(searchTerm.toLowerCase()));
+      // FILTRO 1: Busca por texto
+      const matchesSearch = (
+        p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        p.reclamante.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      // FILTRO 2: Status
       const matchesStatus = filterStatus === 'todos' || p.status === filterStatus;
+      
+      // FILTRO 3: Data específica
       const matchesDate = filterDate === '' || p.data === filterDate;
       
+      // FILTRO 4: Prazos
       let matchesPrazo = true;
       if (filterPrazo === 'vencidos') {
-        matchesPrazo = (p.status === 'aguarda_laudo' && isPrazoVencido(p.prazoLaudo)) || (p.status === 'aguarda_quesitos' && isPrazoVencido(p.prazoQuesitos));
+        // Mostra perícias que TÊM prazos vencidos (laudo OU quesitos)
+        matchesPrazo = (
+          (p.prazoLaudo && isPrazoVencido(p.prazoLaudo)) || 
+          (p.prazoQuesitos && isPrazoVencido(p.prazoQuesitos))
+        );
       }
+      
       return matchesSearch && matchesStatus && matchesDate && matchesPrazo;
     });
   }, [pericias, searchTerm, filterStatus, filterDate, filterPrazo]);
 
-  const stats = useMemo(() => ({ total: pericias.length, aguarda_ato_pericial: pericias.filter(p => p.status === 'aguarda_ato_pericial').length, aguarda_laudo: pericias.filter(p => p.status === 'aguarda_laudo').length, aguarda_quesitos: pericias.filter(p => p.status === 'aguarda_quesitos').length, aguarda_sentenca: pericias.filter(p => p.status === 'aguarda_sentenca').length, aguarda_pagamento: pericias.filter(p => p.status === 'aguarda_pagamento').length, concluidas: pericias.filter(p => p.status === 'concluida').length, prazosVencidos: periciasAtrasadas.length, hojeAgendadas: pericias.filter(p => p.data === new Date().toISOString().split('T')[0]).length, totalHonorariosSolicitados: pericias.reduce((sum, p) => sum + (p.honorariosSolicitados || 0), 0), totalHonorariosDeferidos: pericias.reduce((sum, p) => sum + (p.honorariosDeferidos || 0), 0), honorariosAReceber: pericias.filter(p => p.status === 'aguarda_pagamento').reduce((sum, p) => sum + p.honorariosDeferidos, 0), totalHonorariosPagos: pericias.filter(p => p.status === 'concluida').reduce((sum, p) => sum + p.honorariosDeferidos, 0), }), [pericias, periciasAtrasadas]);
+  const stats = useMemo(() => ({ 
+    total: pericias.length, 
+    aguarda_ato_pericial: pericias.filter(p => p.status === 'aguarda_ato_pericial').length, 
+    aguarda_laudo: pericias.filter(p => p.status === 'aguarda_laudo').length, 
+    aguarda_quesitos: pericias.filter(p => p.status === 'aguarda_quesitos').length, 
+    aguarda_sentenca: pericias.filter(p => p.status === 'aguarda_sentenca').length, 
+    aguarda_pagamento: pericias.filter(p => p.status === 'aguarda_pagamento').length, 
+    concluidas: pericias.filter(p => p.status === 'concluida').length, 
+    prazosVencidos: periciasAtrasadas.length, 
+    hojeAgendadas: pericias.filter(p => p.data === new Date().toISOString().split('T')[0]).length, 
+    totalHonorariosSolicitados: pericias.reduce((sum, p) => sum + (p.honorariosSolicitados || 0), 0), 
+    totalHonorariosDeferidos: pericias.reduce((sum, p) => sum + (p.honorariosDeferidos || 0), 0), 
+    honorariosAReceber: pericias.filter(p => p.status === 'aguarda_pagamento').reduce((sum, p) => sum + p.honorariosDeferidos, 0), 
+    totalHonorariosPagos: pericias.filter(p => p.status === 'concluida').reduce((sum, p) => sum + p.honorariosDeferidos, 0), 
+  }), [pericias, periciasAtrasadas]);
 
-  const value = useMemo(() => ({ pericias, addPericia, updatePericia, deletePericia, searchTerm, setSearchTerm, filterStatus, setFilterStatus, filterDate, setFilterDate, filterPrazo, setFilterPrazo, filteredPericias, stats, periciasAtrasadas, isPrazoVencido }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo]);
+  const value = useMemo(() => ({ 
+    pericias, 
+    addPericia, 
+    updatePericia, 
+    deletePericia, 
+    searchTerm, 
+    setSearchTerm, 
+    filterStatus, 
+    setFilterStatus, 
+    filterDate, 
+    setFilterDate, 
+    filterPrazo, 
+    setFilterPrazo, 
+    filteredPericias, 
+    stats, 
+    periciasAtrasadas, 
+    isPrazoVencido 
+  }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, periciasAtrasadas]);
 
   return <PericiasContext.Provider value={value}>{children}</PericiasContext.Provider>;
 }
 
-export function usePericias() { const context = useContext(PericiasContext); if (!context) throw new Error('usePericias must be used within a PericiasProvider'); return context; }
+export function usePericias() { 
+  const context = useContext(PericiasContext); 
+  if (!context) throw new Error('usePericias must be used within a PericiasProvider'); 
+  return context; 
+}
