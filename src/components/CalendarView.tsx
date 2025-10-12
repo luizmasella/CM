@@ -3,11 +3,13 @@
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
+import { useToast } from '../context/ToastContext';
 import { CalendarDays, ChevronRight, Calendar, AlertTriangle, XCircle, Clock } from 'lucide-react';
 
 export default function CalendarView() {
-  const { pericias, periciasAtrasadas, setFilterDate, setFilterPrazo, setFilterStatus } = usePericias();
+  const { pericias, periciasAtrasadas, setFilterDate, setFilterPrazo, setFilterStatus, isPrazoVencido } = usePericias();
   const { setActiveTab, openProcessPage } = useUI();
+  const { toast } = useToast();
   
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
@@ -47,31 +49,38 @@ export default function CalendarView() {
   const goToToday = () => setCurrentMonth(new Date());
 
   const handleDayClick = (dateString: string) => {
+    const periciasNoDia = getPericiasForDate(dateString);
+    const prazosNoDia = getPrazosForDate(dateString);
+    
+    if (periciasNoDia.length === 0 && prazosNoDia.length === 0) {
+      toast.info('📅 Nenhuma perícia ou prazo nesta data');
+      return;
+    }
+    
     // Limpa todos os filtros primeiro
     setFilterStatus('todos');
     setFilterPrazo('todos');
     // Aplica filtro de data
     setFilterDate(dateString);
     setActiveTab('pericias');
+    
+    toast.success(`✅ Filtrando ${periciasNoDia.length} perícia(s) de ${new Date(dateString).toLocaleDateString('pt-BR')}`);
   };
   
   const handlePrazosVencidosClick = () => {
+    if (periciasAtrasadas.length === 0) {
+      toast.info('🎉 Nenhum prazo vencido!');
+      return;
+    }
+    
     // Limpa outros filtros
     setFilterStatus('todos');
     setFilterDate('');
     // Aplica filtro de prazos vencidos
     setFilterPrazo('vencidos');
     setActiveTab('pericias');
-  };
-
-  const isPrazoVencido = (prazo: string | null): boolean => {
-    if (!prazo) return false;
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const [ano, mes, dia] = prazo.split('-').map(Number);
-    const dataPrazo = new Date(ano, mes - 1, dia);
-    dataPrazo.setHours(0, 0, 0, 0);
-    return dataPrazo < hoje;
+    
+    toast.warning(`⚠️ Mostrando ${periciasAtrasadas.length} perícia(s) com prazos vencidos`);
   };
 
   // NOVA FUNÇÃO: Prazos próximos (7 dias)
@@ -88,7 +97,7 @@ export default function CalendarView() {
         const [ano, mes, dia] = prazo.split('-').map(Number);
         const dataPrazo = new Date(ano, mes - 1, dia);
         dataPrazo.setHours(0, 0, 0, 0);
-        return dataPrazo >= hoje && dataPrazo <= seteDiasFrente;
+        return dataPrazo >= hoje && dataPrazo <= seteDiasFrente && !isPrazoVencido(prazo);
       });
     });
   };
@@ -264,12 +273,12 @@ export default function CalendarView() {
                   className="p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors border border-yellow-200"
                 >
                   <p className="font-semibold text-sm text-yellow-800">{p.numeroProcesso}</p>
-                  {p.prazoLaudo && (
+                  {p.prazoLaudo && !isPrazoVencido(p.prazoLaudo) && (
                     <p className="text-xs text-gray-700">
                       📄 Laudo: {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
                     </p>
                   )}
-                  {p.prazoQuesitos && (
+                  {p.prazoQuesitos && !isPrazoVencido(p.prazoQuesitos) && (
                     <p className="text-xs text-gray-700">
                       ❓ Quesitos: {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
                     </p>
