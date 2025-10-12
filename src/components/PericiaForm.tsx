@@ -3,16 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
-import { useRegioes } from '../context/RegioesContext';
-import Combobox from './Combobox';
 import { PlusCircle, X } from 'lucide-react';
-import { tiposPericia as tiposDefault, statusConfig } from '../config/constants';
+import { tiposPericia as tiposDefault, regioesList, statusConfig } from '../config/constants';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia } = usePericias();
   const { editingId, closeForm } = useUI();
   const { toast } = useToast();
-  const { regioes, addRegiao } = useRegioes();
   
   const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
@@ -64,14 +61,10 @@ export default function PericiaForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação mínima: apenas número do processo
     if (!formData.numeroProcesso || formData.numeroProcesso.trim() === '') {
       toast.error('❌ Número do processo é obrigatório!');
       return;
-    }
-    
-    // Se digitou uma região nova, adiciona automaticamente
-    if (formData.regiao && !regioes.includes(formData.regiao)) {
-      addRegiao(formData.regiao);
     }
     
     const periciaData = { 
@@ -157,14 +150,18 @@ export default function PericiaForm() {
                             />
                         </div>
                         <div>
-                            <Combobox
-                              label="Região/Tribunal"
-                              value={formData.regiao}
-                              onChange={(value) => setFormData(prev => ({...prev, regiao: value}))}
-                              options={regioes}
-                              onAddNew={addRegiao}
-                              placeholder="Digite ou selecione uma região..."
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Região/Tribunal
+                            </label>
+                            <select 
+                              name="regiao" 
+                              value={formData.regiao} 
+                              onChange={handleChange} 
+                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="">Selecione a região...</option>
+                                {regioesList.map(r => <option key={r} value={r}>{r}</option>)}
+                            </select>
                         </div>
                     </div>
                 </div>
