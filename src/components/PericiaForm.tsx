@@ -72,7 +72,12 @@ export default function PericiaForm() {
       return;
     }
     
-    const periciaData = { 
+    // 👇 ADICIONAR ESTA LINHA AQUI
+    if (formData.regiao && !regioes.includes(formData.regiao)) {
+      addRegiao(formData.regiao);
+    }
+    
+    const periciaData = {
       ...formData, 
       honorariosSolicitados: parseFloat(formData.honorariosSolicitados) || 0, 
       honorariosDeferidos: parseFloat(formData.honorariosDeferidos) || 0, 
