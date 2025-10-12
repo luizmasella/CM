@@ -1,20 +1,18 @@
-[plugin:vite:import-analysis] Failed to resolve import "./config/constants" from "src/App.tsx". Does the file exist?
-/project/workspace/src/App.tsx:20:56
-29 |  import RelatoriosPage from "./components/RelatoriosPage";
-30 |  import NotificacoesPage from "./components/NotificacoesPage";
-31 |  import { statusConfig, tiposPericia } from "./config/constants";
-   |                                              ^
-32 |  export default function App() {
-33 |    _s();
-    at TransformPluginContext._formatLog (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42499:41)
-    at TransformPluginContext.error (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42496:16)
-    at normalizeUrl (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40475:23)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40594:37
-    at async Promise.all (index 16)
-    at async TransformPluginContext.transform (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40521:7)
-    at async EnvironmentPluginContainer.transform (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42294:18)
-    at async loadAndTransform (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:35735:27)
-    at async viteTransformMiddleware (file:///project/workspace/node_modules/.pnpm/vite@6.3.5/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:37250:24
-Click outside, press Esc key, or fix the code to dismiss.
-You can also disable this overlay by setting server.hmr.overlay to false in vite.config.ts.
+// FILE: src/config/constants.ts
+
+import { Clock, FileText, FileQuestion, Gavel, DollarSign, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+
+export const statusConfig = {
+    aguarda_ato_pericial: { label: 'Aguardando Ato Pericial', color: 'bg-blue-100 text-blue-800', icon: Clock },
+    aguarda_laudo: { label: 'Aguardando Laudo', color: 'bg-purple-100 text-purple-800', icon: FileText },
+    aguarda_quesitos: { label: 'Aguardando Quesitos Complementares', color: 'bg-orange-100 text-orange-800', icon: FileQuestion },
+    aguarda_sentenca: { label: 'Aguardando Sentença', color: 'bg-indigo-100 text-indigo-800', icon: Gavel },
+    aguarda_pagamento: { label: 'Aguardando Pagamento', color: 'bg-yellow-100 text-yellow-800', icon: DollarSign },
+    concluida: { label: 'Concluída', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+    cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-800', icon: XCircle },
+    recusada: { label: 'Recusada', color: 'bg-gray-100 text-gray-800', icon: AlertCircle }
+};
+
+export const tiposPericia = ['Médica', 'Psiquiátrica', 'Ortopédica', 'Cardiológica', 'Neurológica'];
+
+export const regioesList = ['TRT 2ª Região - SP', 'TRT 15ª Região - Campinas', 'TJ-SP'];
