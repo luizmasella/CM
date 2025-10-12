@@ -13,11 +13,15 @@ export default function PericiaForm() {
   const { editingId, closeForm } = useUI();
   const { toast } = useToast();
   const { regioes, addRegiao } = useRegioes();
-  const { editingId, closeForm } = useUI();
-  const { toast } = useToast();
   
   const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
+    tipo: '', vara: '', juiz: '', local: '', regiao: '', status: 'aguarda_ato_pericial',
+    justicaGratuita: false, honorariosSolicitados: '', honorariosDeferidos: '',
+    prazoLaudo: '', prazoQuesitos: '', observacoes: '', historico: []
+  };
+  const [formData, setFormData] = useState(initialState);
+  const [tiposPericia] = useState(tiposDefault);
     tipo: '', vara: '', juiz: '', local: '', regiao: '', status: 'aguarda_ato_pericial',
     justicaGratuita: false, honorariosSolicitados: '', honorariosDeferidos: '',
     prazoLaudo: '', prazoQuesitos: '', observacoes: '', historico: []
