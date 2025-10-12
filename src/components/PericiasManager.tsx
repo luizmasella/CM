@@ -7,7 +7,19 @@ import { statusConfig } from '../config/constants';
 import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function PericiasManager() {
-  const { deletePericia, pericias, searchTerm, setSearchTerm, filterStatus, setFilterStatus, clearAllFilters } = usePericias();
+  const { 
+    deletePericia, 
+    pericias, 
+    searchTerm, 
+    setSearchTerm, 
+    filterStatus, 
+    setFilterStatus, 
+    filterDate,        // ← ADICIONADO
+    setFilterDate,     // ← ADICIONADO
+    clearAllFilters,
+    filteredPericias: contextFilteredPericias  // ← RENOMEADO para usar como base
+  } = usePericias();
+  
   const { handleShowNewForm, handleEdit, handleViewDetails, openProcessPage } = useUI();
   const { toast } = useToast();
   
@@ -45,24 +57,12 @@ export default function PericiasManager() {
     };
   }, [pericias]);
 
-  // Filtra pericias com busca avançada
+  // CORREÇÃO: Usa contextFilteredPericias como BASE (que já tem filterDate aplicado)
+  // e aplica os filtros avançados EM CIMA
   const filteredPericias = useMemo(() => {
-    let result = pericias;
+    let result = contextFilteredPericias; // ← MUDANÇA: usa filtro do Context como base
 
-    // Filtro básico de texto (processo e reclamante)
-    if (searchTerm) {
-      result = result.filter(p =>
-        p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.reclamante.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filtro de status
-    if (filterStatus !== 'todos') {
-      result = result.filter(p => p.status === filterStatus);
-    }
-
-    // Filtros avançados
+    // Aplica apenas os filtros avançados
     if (advancedFilters.vara) {
       result = result.filter(p =>
         p.vara.toLowerCase().includes(advancedFilters.vara.toLowerCase())
@@ -96,7 +96,7 @@ export default function PericiasManager() {
     }
 
     return result;
-  }, [pericias, searchTerm, filterStatus, advancedFilters]);
+  }, [contextFilteredPericias, advancedFilters]); // ← Dependências corretas
   
   const exportarRelatorio = () => {
     toast.info('📊 Funcionalidade de exportação está na aba Relatórios');
@@ -133,6 +133,7 @@ export default function PericiasManager() {
   const hasActiveFilters = 
     searchTerm !== '' || 
     filterStatus !== 'todos' ||
+    filterDate !== '' ||  // ← ADICIONADO
     advancedFilters.vara !== '' ||
     advancedFilters.juiz !== '' ||
     advancedFilters.regiao !== '' ||
@@ -142,6 +143,7 @@ export default function PericiasManager() {
   const activeFiltersCount = 
     (searchTerm ? 1 : 0) +
     (filterStatus !== 'todos' ? 1 : 0) +
+    (filterDate ? 1 : 0) +  // ← ADICIONADO
     (advancedFilters.vara ? 1 : 0) +
     (advancedFilters.juiz ? 1 : 0) +
     (advancedFilters.regiao ? 1 : 0) +
@@ -402,6 +404,12 @@ export default function PericiasManager() {
               {filterStatus !== 'todos' && (
                 <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
                   Status: {statusConfig[filterStatus]?.label}
+                </span>
+              )}
+              {/* NOVO: Mostra filtro de data */}
+              {filterDate && (
+                <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                  📅 Data: {new Date(filterDate).toLocaleDateString('pt-BR')}
                 </span>
               )}
               {advancedFilters.vara && (
