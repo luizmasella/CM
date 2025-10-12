@@ -1,10 +1,8 @@
-// FILE: tailwind.config.js
-
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}", // Garante que ele olha todos os arquivos na pasta src
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {},
