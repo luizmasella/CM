@@ -1,4 +1,6 @@
 // FILE: src/App.tsx
+// ✅ VERSÃO MELHORADA - Lógica mais clara e organizada
+
 import React from 'react';
 import { useUI } from './context/UIContext';
 import Header from './components/Header';
@@ -15,12 +17,21 @@ import NotificacoesPage from './components/NotificacoesPage';
 export default function App() {
   const { activeTab, processDetailView, showForm, showDetails } = useUI();
   
-  if (processDetailView) { return <ProcessDetailPage /> }
+  // ✅ CORRIGIDO: Se está na página de detalhes completos, renderiza apenas ela
+  if (processDetailView) {
+    return <ProcessDetailPage />;
+  }
 
+  // ✅ Renderização do layout principal
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Header fixo no topo */}
       <Header />
+      
+      {/* Navbar com abas */}
       <Navbar />
+      
+      {/* Conteúdo principal baseado na aba ativa */}
       <main className="container mx-auto px-4 py-8">
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'pericias' && <PericiasManager />}
@@ -28,6 +39,8 @@ export default function App() {
         {activeTab === 'relatorios' && <RelatoriosPage />}
         {activeTab === 'notificacoes' && <NotificacoesPage />}
       </main>
+      
+      {/* ✅ Modais sobrepostos (renderizam apenas quando necessário) */}
       {showForm && <PericiaForm />}
       {showDetails && <PericiaDetails />}
     </div>
