@@ -5,6 +5,7 @@ import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
 import { useRegioes } from '../context/RegioesContext';
 import Combobox from './Combobox';
+import ConfirmationModal from './ConfirmationModal';
 import { PlusCircle, X, AlertCircle } from 'lucide-react';
 import { tiposPericia as tiposDefault, statusConfig } from '../config/constants';
 import { PericiaValidator } from '../utils/validation';
@@ -19,6 +20,9 @@ export default function PericiaForm() {
   const [validator] = useState(() => new PericiaValidator());
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  
+  // Modal de confirmação para cancelar
+  const [showCancelModal, setShowCancelModal] = useState(false);
   
   const initialState = {
     numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
@@ -269,30 +273,71 @@ export default function PericiaForm() {
     setIsSubmitting(true);
     
     setTimeout(() => {
-      if (formData.regiao && !regioes.includes(formData.regiao)) {
-        addRegiao(formData.regiao);
+      try {
+        if (formData.regiao && !regioes.includes(formData.regiao)) {
+          addRegiao(formData.regiao);
+        }
+        
+        const periciaData = {
+          ...formData, 
+          honorariosSolicitados: parseFloat(formData.honorariosSolicitados) || 0, 
+          honorariosDeferidos: parseFloat(formData.honorariosDeferidos) || 0, 
+          reclamadas: formData.reclamadas.filter(r => r.trim() !== ''),
+          prazoLaudo: formData.prazoLaudo || null,
+          prazoQuesitos: formData.prazoQuesitos || null,
+        };
+        
+        let success = false;
+        
+        if(editingId !== null) {
+          success = updatePericia({ id: editingId, ...periciaData });
+          if (success) {
+            toast.success('✅ Perícia atualizada com sucesso!');
+            closeForm();
+          } else {
+            toast.error('❌ Erro ao atualizar perícia. Tente novamente.');
+          }
+        } else {
+          success = addPericia(periciaData);
+          if (success) {
+            toast.success('✅ Perícia cadastrada com sucesso!');
+            closeForm();
+          } else {
+            toast.error('❌ Erro ao cadastrar perícia. Verifique os dados e tente novamente.');
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao salvar perícia:', error);
+        toast.error('❌ Erro inesperado ao salvar. Por favor, tente novamente.');
+      } finally {
+        setIsSubmitting(false);
       }
-      
-      const periciaData = {
-        ...formData, 
-        honorariosSolicitados: parseFloat(formData.honorariosSolicitados) || 0, 
-        honorariosDeferidos: parseFloat(formData.honorariosDeferidos) || 0, 
-        reclamadas: formData.reclamadas.filter(r => r.trim() !== ''),
-        prazoLaudo: formData.prazoLaudo || null,
-        prazoQuesitos: formData.prazoQuesitos || null,
-      };
-      
-      if(editingId !== null) {
-          updatePericia({ id: editingId, ...periciaData });
-          toast.success('✅ Perícia atualizada com sucesso!');
-      } else {
-          addPericia(periciaData);
-          toast.success('✅ Perícia cadastrada com sucesso!');
-      }
-      
-      setIsSubmitting(false);
-      closeForm();
     }, 500);
+  };
+
+  const handleCancelClick = () => {
+    // Verifica se há dados preenchidos
+    const hasData = 
+      formData.numeroProcesso.trim() !== '' ||
+      formData.reclamante.trim() !== '' ||
+      formData.reclamadas.some(r => r.trim() !== '') ||
+      formData.data !== '' ||
+      formData.hora !== '' ||
+      formData.tipo !== '' ||
+      formData.vara !== '' ||
+      formData.juiz !== '' ||
+      formData.observacoes.trim() !== '';
+    
+    if (hasData) {
+      setShowCancelModal(true);
+    } else {
+      closeForm();
+    }
+  };
+
+  const confirmCancel = () => {
+    setShowCancelModal(false);
+    closeForm();
   };
 
   const getFieldClassName = (fieldName: string) => {
@@ -320,7 +365,7 @@ export default function PericiaForm() {
                   </p>
                 </div>
                 <button 
-                  onClick={closeForm} 
+                  onClick={handleCancelClick} 
                   className="text-gray-500 hover:text-gray-800 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   disabled={isSubmitting}
                 >
@@ -716,7 +761,7 @@ export default function PericiaForm() {
                 <div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
                     <button 
                       type="button" 
-                      onClick={closeForm} 
+                      onClick={handleCancelClick} 
                       className="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
                       disabled={isSubmitting}
                     >
@@ -741,6 +786,18 @@ export default function PericiaForm() {
                 </div>
             </form>
         </div>
+
+        {/* Modal de Confirmação de Cancelamento */}
+        <ConfirmationModal
+          isOpen={showCancelModal}
+          title="Descartar alterações?"
+          message="Você tem dados não salvos no formulário. Se sair agora, todas as alterações serão perdidas."
+          confirmText="Sim, descartar"
+          cancelText="Continuar editando"
+          onConfirm={confirmCancel}
+          onCancel={() => setShowCancelModal(false)}
+          type="warning"
+        />
     </div>
   );
 }
