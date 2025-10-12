@@ -4,10 +4,21 @@ import React from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
-import { CalendarDays, ChevronRight, Calendar, AlertTriangle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { CalendarDays, ChevronRight, Calendar, AlertTriangle, XCircle, Clock, AlertCircle, FileText, FileQuestion } from 'lucide-react';
 
 export default function CalendarView() {
-  const { pericias, periciasAtrasadas, prazos7Dias, prazos15Dias, setFilterDate, setFilterPrazo, setFilterStatus, isPrazoVencido, clearAllFilters } = usePericias();
+  const { 
+    pericias, 
+    periciasAtrasadas, 
+    prazos7Dias, 
+    prazos15Dias, 
+    setFilterDate, 
+    setFilterPrazo, 
+    clearAllFilters,
+    isPrazoVencido,
+    getPrazoStatus
+  } = usePericias();
+  
   const { setActiveTab, openProcessPage } = useUI();
   const { toast } = useToast();
   
@@ -23,20 +34,23 @@ export default function CalendarView() {
 
   const getPericiasForDate = (dateString: string) => pericias.filter(p => p.data === dateString);
   
-  // CORRIGIDO: Função que pega prazos para uma data específica
   const getPrazosForDate = (dateString: string) => {
-    return pericias.filter(p => {
-      // Verifica se o prazoLaudo é nesta data
-      if (p.prazoLaudo === dateString) return true;
-      
-      // Verifica se o prazoQuesitos é nesta data
-      if (p.prazoQuesitos === dateString) return true;
-      
-      return false;
+    const prazos: Array<{pericia: any, tipo: 'laudo' | 'quesitos', prazo: string}> = [];
+    
+    pericias.forEach(p => {
+      if (p.prazoLaudo === dateString) {
+        prazos.push({ pericia: p, tipo: 'laudo', prazo: p.prazoLaudo });
+      }
+      if (p.prazoQuesitos === dateString) {
+        prazos.push({ pericia: p, tipo: 'quesitos', prazo: p.prazoQuesitos });
+      }
     });
+    
+    return prazos;
   };
   
-  const formatDateString = (year: number, month: number, day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const formatDateString = (year: number, month: number, day: number) => 
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   
   const isToday = (year: number, month: number, day: number) => {
     const hoje = new Date();
@@ -134,6 +148,7 @@ export default function CalendarView() {
           </button>
         </div>
 
+        {/* CALENDÁRIO */}
         <div className="grid grid-cols-7 gap-2">
           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
             <div key={day} className="text-center font-bold text-gray-600 py-2">{day}</div>
@@ -154,13 +169,11 @@ export default function CalendarView() {
               const prazosNoDia = getPrazosForDate(dateString);
               const isHoje = isToday(year, month, day);
               
-              // CORRIGIDO: Verifica se TEM prazo vencido nesta data
-              const temPrazoVencido = prazosNoDia.some(p => {
-                const prazoVencidoLaudo = p.prazoLaudo === dateString && isPrazoVencido(p.prazoLaudo);
-                const prazoVencidoQuesitos = p.prazoQuesitos === dateString && isPrazoVencido(p.prazoQuesitos);
-                return prazoVencidoLaudo || prazoVencidoQuesitos;
-              });
-
+              // Separa prazos por tipo e status
+              const prazosLaudo = prazosNoDia.filter(p => p.tipo === 'laudo');
+              const prazosQuesitos = prazosNoDia.filter(p => p.tipo === 'quesitos');
+              
+              const temPrazoVencido = prazosNoDia.some(p => isPrazoVencido(p.prazo));
               const temConteudo = periciasNoDia.length > 0 || prazosNoDia.length > 0;
 
               return (
@@ -179,6 +192,7 @@ export default function CalendarView() {
                 >
                   <div className="text-sm font-semibold mb-1">{day}</div>
                   <div className="flex-1 flex flex-col gap-1 overflow-hidden">
+                    {/* Perícias agendadas */}
                     {periciasNoDia.length > 0 && (
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -187,11 +201,23 @@ export default function CalendarView() {
                         </span>
                       </div>
                     )}
-                    {prazosNoDia.length > 0 && (
+                    
+                    {/* Prazos de Laudo */}
+                    {prazosLaudo.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <div className={`w-2 h-2 rounded-full ${temPrazoVencido ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'}`}></div>
-                        <span className={`text-xs font-medium ${temPrazoVencido ? 'text-red-700' : 'text-yellow-700'}`}>
-                          {prazosNoDia.length}
+                        <FileText size={10} className={`${temPrazoVencido ? 'text-red-600 animate-pulse' : 'text-purple-600'}`} />
+                        <span className={`text-xs font-medium ${temPrazoVencido ? 'text-red-700' : 'text-purple-700'}`}>
+                          L:{prazosLaudo.length}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Prazos de Quesitos */}
+                    {prazosQuesitos.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <FileQuestion size={10} className={`${temPrazoVencido ? 'text-red-600 animate-pulse' : 'text-orange-600'}`} />
+                        <span className={`text-xs font-medium ${temPrazoVencido ? 'text-red-700' : 'text-orange-700'}`}>
+                          Q:{prazosQuesitos.length}
                         </span>
                       </div>
                     )}
@@ -202,28 +228,35 @@ export default function CalendarView() {
           })()}
         </div>
 
-        {/* Legenda */}
-        <div className="mt-4 flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span className="text-gray-700">Hoje</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span className="text-gray-700">Perícias agendadas</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-            <span className="text-gray-700">Prazos</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded animate-pulse"></div>
-            <span className="text-gray-700">Prazos vencidos</span>
+        {/* LEGENDA MELHORADA */}
+        <div className="mt-6 bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+          <h4 className="font-semibold text-gray-700 mb-3">Legenda:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-green-700"></div>
+              <span className="text-gray-700 font-medium">Hoje</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span className="text-gray-700">Perícias agendadas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileText size={14} className="text-purple-600" />
+              <span className="text-gray-700">Prazo de Laudo (L)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileQuestion size={14} className="text-orange-600" />
+              <span className="text-gray-700">Prazo de Quesitos (Q)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-gray-700 font-medium">Prazo vencido</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* CARDS DE RESUMO - AGORA COM 4 COLUNAS */}
+      {/* CARDS DE RESUMO */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* PERÍCIAS NO MÊS */}
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -246,9 +279,15 @@ export default function CalendarView() {
                   <p className="font-semibold text-sm">
                     {new Date(p.data).toLocaleDateString('pt-BR')}
                   </p>
-                  <p className="text-xs text-gray-700">{p.reclamante}</p>
+                  <p className="text-xs text-gray-700 truncate">{p.reclamante}</p>
+                  <p className="text-xs text-gray-500">{p.numeroProcesso}</p>
                 </div>
               ))}
+              {periciasNoMes.length > 5 && (
+                <p className="text-xs text-gray-500 text-center pt-2">
+                  + {periciasNoMes.length - 5} perícia(s)
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Nenhuma perícia</p>
@@ -267,19 +306,37 @@ export default function CalendarView() {
           </div>
           {periciasAtrasadas.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {periciasAtrasadas.slice(0, 5).map(p => (
-                <div 
-                  key={p.id} 
-                  onClick={() => handlePrazosClick('vencidos')}
-                  className="p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer transition-colors border border-red-200 animate-pulse"
-                >
-                  <p className="font-semibold text-sm text-red-800">{p.numeroProcesso}</p>
-                  <p className="text-xs text-red-700">
-                    ⚠️ Prazo: {p.prazoLaudo && new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
-                    {p.prazoQuesitos && new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              ))}
+              {periciasAtrasadas.slice(0, 5).map(p => {
+                const prazoLaudoVencido = p.prazoLaudo && isPrazoVencido(p.prazoLaudo);
+                const prazoQuesitosVencido = p.prazoQuesitos && isPrazoVencido(p.prazoQuesitos);
+                
+                return (
+                  <div 
+                    key={p.id} 
+                    onClick={() => handlePrazosClick('vencidos')}
+                    className="p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer transition-colors border border-red-200 animate-pulse"
+                  >
+                    <p className="font-semibold text-sm text-red-800">{p.numeroProcesso}</p>
+                    <div className="flex flex-col gap-1 mt-1">
+                      {prazoLaudoVencido && (
+                        <p className="text-xs text-red-700 flex items-center gap-1">
+                          <FileText size={10} /> Laudo: {new Date(p.prazoLaudo!).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                      {prazoQuesitosVencido && (
+                        <p className="text-xs text-red-700 flex items-center gap-1">
+                          <FileQuestion size={10} /> Quesitos: {new Date(p.prazoQuesitos!).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {periciasAtrasadas.length > 5 && (
+                <p className="text-xs text-red-600 text-center pt-2 font-medium">
+                  + {periciasAtrasadas.length - 5} vencido(s)
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Nenhum vencido 🎉</p>
@@ -305,12 +362,25 @@ export default function CalendarView() {
                   className="p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors border border-yellow-200"
                 >
                   <p className="font-semibold text-sm text-yellow-800">{p.numeroProcesso}</p>
-                  <p className="text-xs text-gray-700">
-                    {p.prazoLaudo && new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
-                    {!p.prazoLaudo && p.prazoQuesitos && new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
-                  </p>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {p.prazoLaudo && getPrazoStatus(p.prazoLaudo) === '7dias' && (
+                      <p className="text-xs text-gray-700 flex items-center gap-1">
+                        <FileText size={10} /> {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                    {p.prazoQuesitos && getPrazoStatus(p.prazoQuesitos) === '7dias' && (
+                      <p className="text-xs text-gray-700 flex items-center gap-1">
+                        <FileQuestion size={10} /> {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
+              {prazos7Dias.length > 5 && (
+                <p className="text-xs text-yellow-600 text-center pt-2">
+                  + {prazos7Dias.length - 5} prazo(s)
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Nenhum prazo 🎉</p>
@@ -336,12 +406,25 @@ export default function CalendarView() {
                   className="p-3 bg-orange-50 rounded-lg hover:bg-orange-100 cursor-pointer transition-colors border border-orange-200"
                 >
                   <p className="font-semibold text-sm text-orange-800">{p.numeroProcesso}</p>
-                  <p className="text-xs text-gray-700">
-                    {p.prazoLaudo && new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
-                    {!p.prazoLaudo && p.prazoQuesitos && new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
-                  </p>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {p.prazoLaudo && getPrazoStatus(p.prazoLaudo) === '15dias' && (
+                      <p className="text-xs text-gray-700 flex items-center gap-1">
+                        <FileText size={10} /> {new Date(p.prazoLaudo).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                    {p.prazoQuesitos && getPrazoStatus(p.prazoQuesitos) === '15dias' && (
+                      <p className="text-xs text-gray-700 flex items-center gap-1">
+                        <FileQuestion size={10} /> {new Date(p.prazoQuesitos).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
+              {prazos15Dias.length > 5 && (
+                <p className="text-xs text-orange-600 text-center pt-2">
+                  + {prazos15Dias.length - 5} prazo(s)
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Nenhum prazo 🎉</p>
