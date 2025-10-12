@@ -9,7 +9,7 @@ export default function NotificacoesPage() {
     const { openProcessPage } = useUI();
 
     const notifications = periciasAtrasadas.map((p, index) => ({
-        id: index,
+        id: p.id,
         titulo: '🔴 Prazo Vencido!',
         mensagem: `Processo ${p.numeroProcesso}`,
         pericia: p,
