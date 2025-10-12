@@ -1,10 +1,9 @@
-// FILE: src/App.tsx (VERSÃO FINAL CORRIGIDA)
+// FILE: src/App.tsx
 
 import React from 'react';
 import { usePericias } from './context/PericiasContext';
 import { useUI } from './context/UIContext';
 
-// Nossos Componentes
 import Header from './components/Header';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
@@ -16,7 +15,6 @@ import ProcessDetailPage from './components/ProcessDetailPage';
 import RelatoriosPage from './components/RelatoriosPage';
 import NotificacoesPage from './components/NotificacoesPage';
 
-// DADOS DE CONFIGURAÇÃO IMPORTADOS DO ARQUIVO DEDICADO
 import { statusConfig, tiposPericia, regioesList } from './config/constants';
 
 export default function App() {
@@ -37,7 +35,6 @@ export default function App() {
     periciasAtrasadas,
   } = usePericias();
 
-  // Funções e dados que ainda são necessários no nível do App
   const isPrazoVencido = (prazo: string | null): boolean => { 
     if (!prazo) return false;
     const hoje = new Date();
@@ -58,10 +55,7 @@ export default function App() {
   };
   const exportarRelatorio = () => alert('Exportando...');
 
-  // Lógica de Notificações (ainda vive aqui por enquanto)
   const [notifications, setNotifications] = React.useState<any[]>([]);
-  
-  // O restante do seu App.tsx que não mudou...
   
   if (processDetailView && currentPericia) {
     return (
