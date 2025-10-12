@@ -3,14 +3,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
-import './index.css';
+import './index.css'; // Linha crucial para carregar os estilos
 
-// Importamos nosso novo Provedor de Contexto
 import { PericiasProvider } from './context/PericiasContext.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {/* Envolvemos o <App /> com o <PericiasProvider> */}
     <PericiasProvider>
       <App />
     </PericiasProvider>
