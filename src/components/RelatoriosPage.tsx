@@ -1,14 +1,15 @@
 // FILE: src/components/RelatoriosPage.tsx
-import React from 'react';
+import React, { useRef } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useToast } from '../context/ToastContext';
-import { PieChart, Download, Clock, FileText, FileQuestion, Gavel, DollarSign, CheckCircle, TrendingUp } from 'lucide-react';
+import { PieChart, Download, Clock, FileText, FileQuestion, Gavel, DollarSign, CheckCircle, TrendingUp, Upload, Trash2, Database } from 'lucide-react';
 import { ExportService } from '../utils/export';
 
 export default function RelatoriosPage() {
-  const { stats, pericias } = usePericias();
+  const { stats, pericias, exportData, importData, clearAllData } = usePericias();
   const { toast } = useToast();
   const exportService = new ExportService();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!stats) return <div className="p-6 text-center">Carregando relatórios...</div>;
 
@@ -36,6 +37,69 @@ export default function RelatoriosPage() {
       toast.info('📄 Abrindo janela de impressão/PDF...');
     } catch (error) {
       toast.error('❌ Erro ao gerar PDF');
+    }
+  };
+
+  // NOVO: Sistema de Backup JSON
+  const handleExportBackup = () => {
+    try {
+      const jsonData = exportData();
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.href = url;
+      link.download = `backup-pericias-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('✅ Backup criado com sucesso!');
+    } catch (error) {
+      toast.error('❌ Erro ao criar backup');
+    }
+  };
+
+  // NOVO: Restaurar Backup JSON
+  const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const success = importData(content);
+        if (success) {
+          toast.success('✅ Backup restaurado com sucesso!');
+        } else {
+          toast.error('❌ Arquivo inválido!');
+        }
+      } catch (error) {
+        toast.error('❌ Erro ao ler arquivo');
+      }
+    };
+    reader.readAsText(file);
+    
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // NOVO: Limpar todos os dados
+  const handleClearAll = () => {
+    const confirmed = window.confirm(
+      '⚠️ ATENÇÃO!\n\nIsso vai APAGAR TODOS OS DADOS e resetar para os dados iniciais.\n\nRecomendamos fazer um backup antes.\n\nDeseja continuar?'
+    );
+    if (confirmed) {
+      const doubleCheck = window.confirm(
+        '🔴 ÚLTIMA CONFIRMAÇÃO\n\nTem CERTEZA ABSOLUTA?\n\nEsta ação NÃO pode ser desfeita!'
+      );
+      if (doubleCheck) {
+        clearAllData();
+        toast.warning('⚠️ Todos os dados foram resetados!');
+      }
     }
   };
 
@@ -83,6 +147,89 @@ export default function RelatoriosPage() {
           <p className="text-lg mb-2">Total de Perícias Cadastradas</p>
           <p className="text-6xl font-bold">{stats.total}</p>
           <p className="text-blue-100 mt-2">no sistema</p>
+        </div>
+      </div>
+
+      {/* NOVO: SEÇÃO DE BACKUP/RESTAURAÇÃO */}
+      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl shadow-lg p-6 border-2 border-purple-200">
+        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Database className="text-purple-600" />
+          Gerenciamento de Dados
+        </h3>
+        <p className="text-gray-600 mb-4">
+          Crie backups dos seus dados ou restaure de um arquivo anterior. Seus dados são salvos automaticamente no navegador.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Criar Backup */}
+          <div className="bg-white p-6 rounded-lg border-2 border-purple-200 hover:border-purple-400 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <Download className="text-purple-600" size={24} />
+              <h4 className="font-bold text-gray-800">Criar Backup</h4>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Exporta todos os dados em arquivo JSON para backup externo.
+            </p>
+            <button
+              onClick={handleExportBackup}
+              className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 transition-colors"
+            >
+              <Download size={18} />
+              Baixar Backup
+            </button>
+          </div>
+
+          {/* Restaurar Backup */}
+          <div className="bg-white p-6 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <Upload className="text-blue-600" size={24} />
+              <h4 className="font-bold text-gray-800">Restaurar Backup</h4>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Importa dados de um arquivo de backup anterior.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportBackup}
+              className="hidden"
+              id="import-backup"
+            />
+            <label
+              htmlFor="import-backup"
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <Upload size={18} />
+              Carregar Backup
+            </label>
+          </div>
+
+          {/* Limpar Dados */}
+          <div className="bg-white p-6 rounded-lg border-2 border-red-200 hover:border-red-400 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <Trash2 className="text-red-600" size={24} />
+              <h4 className="font-bold text-gray-800">Resetar Sistema</h4>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Remove todos os dados e volta aos dados iniciais.
+            </p>
+            <button
+              onClick={handleClearAll}
+              className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-colors"
+            >
+              <Trash2 size={18} />
+              Limpar Tudo
+            </button>
+          </div>
+        </div>
+
+        {/* Informação sobre localStorage */}
+        <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+          <p className="text-sm text-blue-800">
+            <strong>💡 Dica:</strong> Seus dados são salvos automaticamente no navegador (localStorage). 
+            Recomendamos criar backups regularmente para segurança extra!
+          </p>
         </div>
       </div>
 
