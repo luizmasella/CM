@@ -104,7 +104,7 @@ export default function PericiaForm({ setShowForm, editingId, setEditingId }: Pe
     setShowForm(false);
     setEditingId(null);
   }
-  // A CHAVE '}' EXTRA QUE ESTAVA AQUI FOI REMOVIDA
+  // The extra '}' that was here has been removed.
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
