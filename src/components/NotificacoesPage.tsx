@@ -1,15 +1,13 @@
 // FILE: src/components/NotificacoesPage.tsx
-
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
-import { Bell, CheckCircle, Trash2 } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 export default function NotificacoesPage() {
-    const { periciasAtrasadas } = usePericias(); // Usa as perícias já calculadas no contexto
+    const { periciasAtrasadas } = usePericias();
     const { openProcessPage } = useUI();
 
-    // A lógica de notificações agora é local a este componente
     const notifications = periciasAtrasadas.map((p, index) => ({
         id: index,
         titulo: '🔴 Prazo Vencido!',
