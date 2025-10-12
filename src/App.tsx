@@ -21,18 +21,18 @@ export default function App() {
   const [processDetailView, setProcessDetailView] = React.useState(false);
   const [currentPericia, setCurrentPericia] = React.useState<any | null>(null);
 
-  const { 
-    pericias, 
+  const {
+    pericias,
     updatePericia,
-    filteredPericias, 
-    stats, 
+    filteredPericias,
+    stats,
     periciasAtrasadas,
     searchTerm,
     setSearchTerm,
     filterStatus,
     setFilterStatus,
   } = usePericias();
-  
+
   const [tiposPericia] = React.useState(['Médica', 'Psiquiátrica', 'Ortopédica', 'Cardiológica', 'Neurológica']);
   const [regioesList] = React.useState(['TRT 2ª Região - SP', 'TRT 15ª Região - Campinas', 'TJ-SP']);
   const statusConfig = {
@@ -47,20 +47,20 @@ export default function App() {
   };
   const isPrazoVencido = (prazo: string | null): boolean => { if (!prazo) return false; const hoje = new Date(); hoje.setHours(0, 0, 0, 0); const dataPrazo = new Date(prazo); return dataPrazo < hoje; };
   const diasAtraso = (prazo: string | null): number => { if (!prazo) return 0; const hoje = new Date(); const dataPrazo = new Date(prazo); const diffTime = hoje.getTime() - dataPrazo.getTime(); const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); return diffDays > 0 ? diffDays : 0; };
-  
+
   const handleEdit = (pericia: any) => { setEditingId(pericia.id); setShowForm(true); };
   const handleShowNewForm = () => { setEditingId(null); setShowForm(true); };
-  const handleCardClick = (filterType: string, value: string | null) => { 
+  const handleCardClick = (filterType: string, value: string | null) => {
     if (filterType === 'status') { setFilterStatus(value || 'todos'); }
     if (filterType === 'prazos_vencidos') { /* Lógica de filtro de prazo pode ser adicionada no contexto */ }
-    setActiveTab('pericias'); 
+    setActiveTab('pericias');
   };
   const handleViewDetails = (pericia: any) => { setSelectedPericia(pericia); setShowDetails(true); };
   const openProcessPage = (pericia: any) => { setCurrentPericia(pericia); setProcessDetailView(true); };
   const closeProcessPage = () => { setProcessDetailView(false); setCurrentPericia(null); };
   const handleSaveDetails = (updatedData: any) => { updatePericia(updatedData); setSelectedPericia(updatedData); };
   const exportarRelatorio = () => alert('Exportando...');
-  
+
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notifications] = React.useState<any[]>([]); // Placeholder
   const notificacoesNaoLidas = 0;
@@ -79,7 +79,7 @@ export default function App() {
 
   if (processDetailView && currentPericia) {
     return (
-      <ProcessDetailPage 
+      <ProcessDetailPage
         currentPericia={currentPericia}
         closeProcessPage={closeProcessPage}
         statusConfig={statusConfig}
@@ -132,7 +132,7 @@ export default function App() {
         {activeTab === 'calendario' && <CalendarView currentMonth={currentMonth} pericias={pericias} periciasAtrasadas={periciasAtrasadas} navigateMonth={navigateMonth} goToToday={goToToday} getDaysInMonth={getDaysInMonth} formatDateString={formatDateString} getPericiasForDate={getPericiasForDate} getPrazosForDate={getPrazosForDate} isToday={isToday} isPrazoVencido={isPrazoVencido} diasAtraso={diasAtraso} setSelectedDate={() => {}} setFilterDate={() => {}} setActiveTab={setActiveTab} openProcessPage={openProcessPage}/>}
       </main>
       {showForm && <PericiaForm setShowForm={setShowForm} editingId={editingId} setEditingId={setEditingId}/>}
-      <PericiaDetails 
+      <PericiaDetails
         showDetails={showDetails}
         selectedPericia={selectedPericia}
         setShowDetails={setShowDetails}
