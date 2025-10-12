@@ -3,8 +3,225 @@ import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useRegioes } from '../context/RegioesContext';
 import { statusConfig, tiposPericia } from '../config/constants';
-import { ChevronRight, User, Calendar, Edit2, CheckCircle, X, FileText, CalendarDays, ClipboardList, Activity, DollarSign, Clock, Gavel, FileQuestion, MapPin, Briefcase, AlertTriangle } from 'lucide-react';
+import { ChevronRight, User, Calendar, Edit2, CheckCircle, X, FileText, CalendarDays, ClipboardList, Activity, DollarSign, Clock, Gavel, FileQuestion, MapPin, Briefcase, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 
+// ==================== COMPONENTE TIMELINE HISTÓRICO ====================
+interface HistoricoItem {
+  data: string;
+  acao: string;
+  usuario: string;
+  detalhes?: string;
+}
+
+function TimelineHistorico({ historico }: { historico: HistoricoItem[] }) {
+  const [filtroTipo, setFiltroTipo] = useState<string>('todos');
+  const [expandido, setExpandido] = useState<boolean>(true);
+  const [mostrarAntigos, setMostrarAntigos] = useState<boolean>(false);
+
+  const getAcaoConfig = (acao: string) => {
+    const acaoLower = acao.toLowerCase();
+    if (acaoLower.includes('cadastr') || acaoLower.includes('criada')) {
+      return { icon: FileText, color: 'bg-green-500', bgLight: 'bg-green-50', borderColor: 'border-green-500', textColor: 'text-green-700' };
+    }
+    if (acaoLower.includes('atualiz') || acaoLower.includes('editada')) {
+      return { icon: Edit2, color: 'bg-blue-500', bgLight: 'bg-blue-50', borderColor: 'border-blue-500', textColor: 'text-blue-700' };
+    }
+    if (acaoLower.includes('realizada') || acaoLower.includes('conclu')) {
+      return { icon: CheckCircle, color: 'bg-purple-500', bgLight: 'bg-purple-50', borderColor: 'border-purple-500', textColor: 'text-purple-700' };
+    }
+    if (acaoLower.includes('laudo') || acaoLower.includes('entregue')) {
+      return { icon: FileText, color: 'bg-indigo-500', bgLight: 'bg-indigo-50', borderColor: 'border-indigo-500', textColor: 'text-indigo-700' };
+    }
+    if (acaoLower.includes('sentença') || acaoLower.includes('proferida')) {
+      return { icon: Gavel, color: 'bg-orange-500', bgLight: 'bg-orange-50', borderColor: 'border-orange-500', textColor: 'text-orange-700' };
+    }
+    if (acaoLower.includes('pagamento')) {
+      return { icon: DollarSign, color: 'bg-yellow-500', bgLight: 'bg-yellow-50', borderColor: 'border-yellow-500', textColor: 'text-yellow-700' };
+    }
+    if (acaoLower.includes('quesitos')) {
+      return { icon: FileQuestion, color: 'bg-pink-500', bgLight: 'bg-pink-50', borderColor: 'border-pink-500', textColor: 'text-pink-700' };
+    }
+    return { icon: Activity, color: 'bg-gray-500', bgLight: 'bg-gray-50', borderColor: 'border-gray-500', textColor: 'text-gray-700' };
+  };
+
+  const historicoFiltrado = historico.filter(h => {
+    if (filtroTipo === 'todos') return true;
+    const acao = h.acao.toLowerCase();
+    if (filtroTipo === 'cadastro' && (acao.includes('cadastr') || acao.includes('criada'))) return true;
+    if (filtroTipo === 'edicao' && (acao.includes('atualiz') || acao.includes('editada'))) return true;
+    if (filtroTipo === 'pericia' && acao.includes('realizada')) return true;
+    if (filtroTipo === 'laudo' && acao.includes('laudo')) return true;
+    if (filtroTipo === 'pagamento' && acao.includes('pagamento')) return true;
+    return false;
+  });
+
+  const historicoExibir = mostrarAntigos ? historicoFiltrado : historicoFiltrado.slice(0, 5);
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <CalendarDays className="text-purple-600" />
+          Histórico Detalhado
+        </h2>
+        <button
+          onClick={() => setExpandido(!expandido)}
+          className="text-purple-600 hover:text-purple-800 transition-colors"
+        >
+          {expandido ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+      </div>
+
+      {expandido && (
+        <>
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setFiltroTipo('todos')}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filtroTipo === 'todos'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Todos ({historico.length})
+            </button>
+            <button
+              onClick={() => setFiltroTipo('cadastro')}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filtroTipo === 'cadastro'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Cadastros
+            </button>
+            <button
+              onClick={() => setFiltroTipo('edicao')}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filtroTipo === 'edicao'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Edições
+            </button>
+            <button
+              onClick={() => setFiltroTipo('pericia')}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filtroTipo === 'pericia'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Perícias
+            </button>
+            <button
+              onClick={() => setFiltroTipo('laudo')}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filtroTipo === 'laudo'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Laudos
+            </button>
+            <button
+              onClick={() => setFiltroTipo('pagamento')}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filtroTipo === 'pagamento'
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Pagamentos
+            </button>
+          </div>
+
+          {/* Timeline */}
+          <div className="relative">
+            {/* Linha vertical */}
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+            <div className="space-y-4">
+              {historicoExibir.map((h, i) => {
+                const config = getAcaoConfig(h.acao);
+                const Icon = config.icon;
+                const dataFormatada = new Date(h.data).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+
+                return (
+                  <div key={i} className="relative flex items-start gap-4 pl-12">
+                    {/* Ícone */}
+                    <div className={`absolute left-0 ${config.color} rounded-full p-2 shadow-md z-10`}>
+                      <Icon size={16} className="text-white" />
+                    </div>
+
+                    {/* Conteúdo */}
+                    <div className={`flex-1 ${config.bgLight} ${config.borderColor} border-l-4 rounded-lg p-4 hover:shadow-md transition-shadow`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className={`font-semibold ${config.textColor} text-base`}>{h.acao}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            👤 {h.usuario}
+                          </p>
+                          {h.detalhes && (
+                            <p className="text-xs text-gray-500 mt-2 bg-white/50 p-2 rounded border border-gray-200">
+                              📝 {h.detalhes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                            {dataFormatada}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {historicoFiltrado.length === 0 && (
+              <div className="text-center py-8">
+                <Activity className="mx-auto text-gray-300 mb-2" size={48} />
+                <p className="text-gray-500 text-sm">Nenhum evento nesta categoria</p>
+              </div>
+            )}
+
+            {historicoFiltrado.length > 5 && !mostrarAntigos && (
+              <button
+                onClick={() => setMostrarAntigos(true)}
+                className="w-full mt-4 py-3 text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <ChevronDown size={16} />
+                Mostrar {historicoFiltrado.length - 5} eventos mais antigos
+              </button>
+            )}
+
+            {mostrarAntigos && historicoFiltrado.length > 5 && (
+              <button
+                onClick={() => setMostrarAntigos(false)}
+                className="w-full mt-4 py-3 text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <ChevronUp size={16} />
+                Mostrar menos
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ==================== COMPONENTE PRINCIPAL ====================
 export default function ProcessDetailPage() {
   const { updatePericia, isPrazoVencido } = usePericias();
   const { currentPericia, closeProcessPage } = useUI();
@@ -270,6 +487,9 @@ export default function ProcessDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* NOVO: TIMELINE DE HISTÓRICO DETALHADO */}
+            <TimelineHistorico historico={localPericia.historico || []} />
           </div>
 
           <div className="space-y-6">
@@ -332,29 +552,6 @@ export default function ProcessDetailPage() {
                 )}
                 {!localPericia.prazoLaudo && !localPericia.prazoQuesitos && (
                   <p className="text-gray-500 text-sm text-center py-4">Nenhum prazo definido</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <CalendarDays className="text-purple-600" />
-                Histórico
-              </h2>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {localPericia.historico.map((h: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{h.acao}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {h.usuario} • {new Date(h.data).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {localPericia.historico.length === 0 && (
-                  <p className="text-gray-500 text-sm text-center py-4">Nenhum histórico registrado</p>
                 )}
               </div>
             </div>
