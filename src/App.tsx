@@ -112,26 +112,34 @@ export default function App() {
         periciasAtrasadas={periciasAtrasadas}
         notificacoesNaoLidas={notificacoesNaoLidas}
       />
-      <main className="container mx-auto px-4 py-8">
-        {activeTab === 'dashboard' && <Dashboard stats={stats} periciasAtrasadas={periciasAtrasadas} handleCardClick={handleCardClick}/>}
-        {activeTab === 'pericias' && (
-          <PericiasManager
-            filteredPericias={filteredPericias}
-            pericias={pericias}
-            statusConfig={statusConfig}
-            exportarRelatorio={exportarRelatorio}
-            handleShowNewForm={handleShowNewForm}
-            handleViewDetails={handleViewDetails}
-            openProcessPage={openProcessPage}
-            handleEdit={handleEdit}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            filterStatus={filterStatus}
-            setFilterStatus={setFilterStatus}
-          />
-        )}
-        {activeTab === 'calendario' && <CalendarView currentMonth={currentMonth} pericias={pericias} periciasAtrasadas={periciasAtrasadas} navigateMonth={navigateMonth} goToToday={goToToday} getDaysInMonth={getDaysInMonth} formatDateString={formatDateString} getPericiasForDate={getPericiasForDate} getPrazosForDate={getPrazosForDate} isToday={isToday} isPrazoVencido={isPrazoVencido} diasAtraso={diasAtraso} setSelectedDate={() => {}} setFilterDate={() => {}} setActiveTab={setActiveTab} openProcessPage={openProcessPage}/>}
-      </main>
+  <main className="container mx-auto px-4 py-8">
+  {activeTab === 'dashboard' && <Dashboard stats={stats} periciasAtrasadas={periciasAtrasadas} handleCardClick={handleCardClick}/>}
+  {activeTab === 'pericias' && (
+    <PericiasManager
+      filteredPericias={filteredPericias}
+      pericias={pericias}
+      statusConfig={statusConfig}
+      exportarRelatorio={exportarRelatorio}
+      handleShowNewForm={handleShowNewForm}
+      handleViewDetails={handleViewDetails}
+      openProcessPage={openProcessPage}
+      handleEdit={handleEdit}
+      searchTerm={searchTerm}
+      setSearchTerm={setSearchTerm}
+      filterStatus={filterStatus}
+      setFilterStatus={setFilterStatus}
+    />
+  )}
+  {activeTab === 'calendario' && <CalendarView /* ...suas props do calendario... */ />}
+
+  {/* ADICIONE ESTE NOVO BLOCO AQUI */}
+  {active-tab === 'relatorios' && (
+    <RelatoriosPage 
+      stats={stats}
+      exportarRelatorio={exportarRelatorio}
+    />
+  )}
+</main>
       {showForm && <PericiaForm setShowForm={setShowForm} editingId={editingId} setEditingId={setEditingId}/>}
       <PericiaDetails 
         showDetails={showDetails}
@@ -147,4 +155,5 @@ export default function App() {
     </div>
   );
 }
+
 
