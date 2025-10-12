@@ -1,59 +1,53 @@
-// FILE: src/components/PericiasManager.tsx
+// FILE: src/components/PericiasManager.tsx (APAGUE TUDO E COLE ISTO)
 
 import React from 'react';
-import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter } from 'lucide-react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
+import { statusConfig } from '../config/constants';
+import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter } from 'lucide-react';
 
-interface PericiasManagerProps {
-  statusConfig: any;
-  exportarRelatorio: () => void;
-}
-
-export default function PericiasManager({ statusConfig, exportarRelatorio }: PericiasManagerProps) {
+export default function PericiasManager() {
   const { deletePericia, filteredPericias, pericias, searchTerm, setSearchTerm, filterStatus, setFilterStatus } = usePericias();
   const { handleShowNewForm, handleEdit, handleViewDetails, openProcessPage } = useUI();
+  
+  const exportarRelatorio = () => alert('Exportando...');
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h2 className="text-2xl font-bold">Gerenciar Perícias</h2>
-        <div className="flex gap-3">
-          <button onClick={exportarRelatorio} className="..."><Download size={18} /> Exportar</button>
-          <button onClick={handleShowNewForm} className="..."><Plus size={20} /> Nova Perícia</button>
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Gerenciar Perícias</h2>
+            <div className="flex gap-3">
+                <button onClick={exportarRelatorio} className="..."><Download /> Exportar</button>
+                <button onClick={handleShowNewForm} className="..."><Plus /> Nova Perícia</button>
+            </div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="..." />
+        <div className="grid grid-cols-2 gap-4 mb-6">
+            <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="..." />
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="...">
+                <option value="todos">Todos</option>
+                {Object.entries(statusConfig).map(([key, config]) => <option key={key} value={key}>{config.label}</option>)}
+            </select>
         </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="...">
-            <option value="todos">Todos os Status</option>
-            {Object.entries(statusConfig).map(([key, config]: [string, any]) => (<option key={key} value={key}>{config.label}</option>))}
-          </select>
+        <div className="overflow-x-auto">
+            <table className="w-full">
+                <thead>...</thead>
+                <tbody>
+                    {filteredPericias.map(pericia => (
+                        <tr key={pericia.id} onClick={() => handleViewDetails(pericia)}>
+                            <td>{pericia.numeroProcesso}</td>
+                            <td>{pericia.reclamante}</td>
+                            <td>{new Date(pericia.data).toLocaleDateString('pt-BR')}</td>
+                            <td>{pericia.tipo}</td>
+                            <td>{statusConfig[pericia.status].label}</td>
+                            <td>
+                                <button onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }}><Edit2 /></button>
+                                <button onClick={(e) => { e.stopPropagation(); deletePericia(pericia.id); }}><Trash2 /></button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full">
-            {/* ... Tabela ... */}
-            <tbody>
-                {filteredPericias.map(pericia => (
-                    <tr key={pericia.id} onClick={() => handleViewDetails(pericia)}>
-                        {/* ... Células ... */}
-                        <td>
-                            <button onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }}> <Edit2 size={18} /> </button>
-                            <button onClick={(e) => { e.stopPropagation(); deletePericia(pericia.id); }}> <Trash2 size={18} /> </button>
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-      </div>
     </div>
   );
 }
