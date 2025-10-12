@@ -1,11 +1,12 @@
 // FILE: src/components/RelatoriosPage.tsx
-// ATUALIZAÇÃO: Adicionados Modais de Confirmação para Backup/Restauração
+// ATUALIZADO: Com tratamento de erros robusto
 
 import React, { useRef, useState } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useToast } from '../context/ToastContext';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '../utils/errorHandler';
 import ConfirmationModal from './ConfirmationModal';
-import { PieChart, Download, Clock, FileText, FileQuestion, Gavel, DollarSign, CheckCircle, TrendingUp, Upload, Trash2, Database } from 'lucide-react';
+import { PieChart, Download, Upload, Trash2, Database } from 'lucide-react';
 import { ExportService } from '../utils/export';
 
 export default function RelatoriosPage() {
@@ -19,38 +20,94 @@ export default function RelatoriosPage() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [pendingFileData, setPendingFileData] = useState<string | null>(null);
 
-  if (!stats) return <div className="p-6 text-center">Carregando relatórios...</div>;
+  // Loading states
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
-  const handleExportCSV = () => {
+  if (!stats) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-gray-500">Carregando relatórios...</p>
+      </div>
+    );
+  }
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
     try {
-      exportService.exportToCSV(pericias);
-      toast.success('✅ Relatório CSV exportado com sucesso!');
+      const success = exportService.exportToCSV(pericias);
+      if (success) {
+        toast.success('✅ Relatório CSV exportado com sucesso!');
+      } else {
+        toast.error('❌ Erro ao exportar CSV');
+      }
     } catch (error) {
-      toast.error('❌ Erro ao exportar CSV');
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'ExportCSV-Button',
+        error
+      );
+      toast.error('❌ Erro ao exportar CSV. Tente novamente.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    setIsExporting(true);
     try {
-      exportService.exportToExcel(pericias);
-      toast.success('✅ Relatório Excel exportado com sucesso!');
+      const success = exportService.exportToExcel(pericias);
+      if (success) {
+        toast.success('✅ Relatório Excel exportado com sucesso!');
+      } else {
+        toast.error('❌ Erro ao exportar Excel');
+      }
     } catch (error) {
-      toast.error('❌ Erro ao exportar Excel');
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'ExportExcel-Button',
+        error
+      );
+      toast.error('❌ Erro ao exportar Excel. Tente novamente.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    setIsExporting(true);
     try {
-      exportService.exportToPDF(pericias, stats);
-      toast.info('📄 Abrindo janela de impressão/PDF...');
+      const success = exportService.exportToPDF(pericias, stats);
+      if (success) {
+        toast.info('📄 Abrindo janela de impressão/PDF...');
+      } else {
+        toast.error('❌ Erro ao gerar PDF');
+      }
     } catch (error) {
-      toast.error('❌ Erro ao gerar PDF');
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'ExportPDF-Button',
+        error
+      );
+      toast.error('❌ Erro ao gerar PDF. Verifique se pop-ups estão habilitados.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleExportBackup = () => {
+  const handleExportBackup = async () => {
+    setIsExporting(true);
     try {
       const jsonData = exportData();
+      
+      if (!jsonData) {
+        throw new Error('Falha ao exportar dados');
+      }
+
       const blob = new Blob([jsonData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -61,9 +118,18 @@ export default function RelatoriosPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      
       toast.success('✅ Backup criado com sucesso!');
     } catch (error) {
-      toast.error('❌ Erro ao criar backup');
+      errorHandler.logError(
+        ErrorCategory.STORAGE,
+        ErrorSeverity.HIGH,
+        'ExportBackup',
+        error
+      );
+      toast.error('❌ Erro ao criar backup. Tente novamente.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -71,11 +137,53 @@ export default function RelatoriosPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Valida tipo de arquivo
+    if (!file.name.endsWith('.json')) {
+      toast.error('❌ Formato inválido! Use um arquivo .json');
+      errorHandler.logError(
+        ErrorCategory.VALIDATION,
+        ErrorSeverity.MEDIUM,
+        'ImportBackup',
+        new Error('Formato de arquivo inválido')
+      );
+      return;
+    }
+
+    // Valida tamanho (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('❌ Arquivo muito grande! Máximo: 10MB');
+      errorHandler.logError(
+        ErrorCategory.VALIDATION,
+        ErrorSeverity.MEDIUM,
+        'ImportBackup',
+        new Error('Arquivo maior que 10MB')
+      );
+      return;
+    }
+
+    setIsImporting(true);
+
     const reader = new FileReader();
+    
+    reader.onerror = () => {
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.HIGH,
+        'ImportBackup-FileReader',
+        new Error('Erro ao ler arquivo')
+      );
+      toast.error('❌ Erro ao ler arquivo. Tente novamente.');
+      setIsImporting(false);
+    };
+
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
         
+        if (!content || content.trim() === '') {
+          throw new Error('Arquivo vazio');
+        }
+
         // Valida se é JSON válido
         JSON.parse(content);
         
@@ -84,9 +192,18 @@ export default function RelatoriosPage() {
         setShowRestoreModal(true);
         
       } catch (error) {
+        errorHandler.logError(
+          ErrorCategory.VALIDATION,
+          ErrorSeverity.HIGH,
+          'ImportBackup-Parse',
+          error
+        );
         toast.error('❌ Arquivo inválido! Use um backup JSON válido.');
+      } finally {
+        setIsImporting(false);
       }
     };
+    
     reader.readAsText(file);
     
     if (fileInputRef.current) {
@@ -94,16 +211,30 @@ export default function RelatoriosPage() {
     }
   };
 
-  const confirmRestore = () => {
-    if (pendingFileData) {
+  const confirmRestore = async () => {
+    if (!pendingFileData) return;
+    
+    setIsImporting(true);
+    
+    try {
       const success = importData(pendingFileData);
       if (success) {
         toast.success('✅ Backup restaurado com sucesso!');
+        setPendingFileData(null);
+        setShowRestoreModal(false);
       } else {
         toast.error('❌ Erro ao restaurar backup!');
       }
-      setPendingFileData(null);
-      setShowRestoreModal(false);
+    } catch (error) {
+      errorHandler.logError(
+        ErrorCategory.STORAGE,
+        ErrorSeverity.CRITICAL,
+        'RestoreBackup',
+        error
+      );
+      toast.error('❌ Erro crítico ao restaurar backup!');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -111,15 +242,43 @@ export default function RelatoriosPage() {
     setShowClearModal(true);
   };
 
-  const confirmClear = () => {
-    clearAllData();
-    setShowClearModal(false);
-    toast.warning('⚠️ Todos os dados foram resetados!');
+  const confirmClear = async () => {
+    setIsClearing(true);
+    
+    try {
+      const success = clearAllData();
+      if (success) {
+        setShowClearModal(false);
+        toast.warning('⚠️ Todos os dados foram resetados!');
+      } else {
+        toast.error('❌ Erro ao limpar dados!');
+      }
+    } catch (error) {
+      errorHandler.logError(
+        ErrorCategory.STORAGE,
+        ErrorSeverity.CRITICAL,
+        'ClearAllData',
+        error
+      );
+      toast.error('❌ Erro crítico ao limpar dados!');
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const calcularPercentual = (valor: number, total: number) => {
-    if (total === 0) return 0;
-    return ((valor / total) * 100).toFixed(1);
+    try {
+      if (total === 0) return 0;
+      return ((valor / total) * 100).toFixed(1);
+    } catch (error) {
+      errorHandler.logError(
+        ErrorCategory.PROCESSING,
+        ErrorSeverity.LOW,
+        'CalcularPercentual',
+        error
+      );
+      return 0;
+    }
   };
 
   return (
@@ -134,24 +293,27 @@ export default function RelatoriosPage() {
           <div className="flex flex-wrap gap-3">
             <button 
               onClick={handleExportCSV}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors shadow-md"
+              disabled={isExporting || pericias.length === 0}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={18} />
-              Exportar CSV
+              {isExporting ? 'Exportando...' : 'Exportar CSV'}
             </button>
             <button 
               onClick={handleExportExcel}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors shadow-md"
+              disabled={isExporting || pericias.length === 0}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={18} />
-              Exportar Excel
+              {isExporting ? 'Exportando...' : 'Exportar Excel'}
             </button>
             <button 
               onClick={handleExportPDF}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 transition-colors shadow-md"
+              disabled={isExporting || pericias.length === 0}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={18} />
-              Gerar PDF
+              {isExporting ? 'Gerando...' : 'Gerar PDF'}
             </button>
           </div>
         </div>
@@ -186,10 +348,11 @@ export default function RelatoriosPage() {
             </p>
             <button
               onClick={handleExportBackup}
-              className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 transition-colors"
+              disabled={isExporting || pericias.length === 0}
+              className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={18} />
-              Baixar Backup
+              {isExporting ? 'Criando...' : 'Baixar Backup'}
             </button>
           </div>
 
@@ -207,15 +370,16 @@ export default function RelatoriosPage() {
               type="file"
               accept=".json"
               onChange={handleImportBackup}
+              disabled={isImporting}
               className="hidden"
               id="import-backup"
             />
             <label
               htmlFor="import-backup"
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className={`w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors cursor-pointer ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Upload size={18} />
-              Carregar Backup
+              {isImporting ? 'Carregando...' : 'Carregar Backup'}
             </label>
           </div>
 
@@ -230,10 +394,11 @@ export default function RelatoriosPage() {
             </p>
             <button
               onClick={handleClearClick}
-              className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-colors"
+              disabled={isClearing}
+              className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={18} />
-              Limpar Tudo
+              {isClearing ? 'Limpando...' : 'Limpar Tudo'}
             </button>
           </div>
         </div>
@@ -247,12 +412,9 @@ export default function RelatoriosPage() {
         </div>
       </div>
 
-      {/* DISTRIBUIÇÃO POR STATUS - Mantido igual ao original */}
-      {/* ... (resto do código permanece igual) ... */}
-
-      {/* ALERTAS - Mantido igual */}
+      {/* ALERTAS */}
       {stats.prazosVencidos > 0 && (
-        <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 flex items-center gap-4">
+        <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 flex items-center gap-4 animate-pulse">
           <div className="text-red-600">
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -272,7 +434,7 @@ export default function RelatoriosPage() {
         isOpen={showRestoreModal}
         title="Restaurar Backup?"
         message={`⚠️ ATENÇÃO!\n\nAo restaurar o backup, TODOS os dados atuais serão substituídos pelos dados do arquivo.\n\nRecomendamos criar um backup dos dados atuais antes de continuar.\n\nDeseja prosseguir com a restauração?`}
-        confirmText="Sim, restaurar"
+        confirmText={isImporting ? "Restaurando..." : "Sim, restaurar"}
         cancelText="Cancelar"
         onConfirm={confirmRestore}
         onCancel={() => {
@@ -287,7 +449,7 @@ export default function RelatoriosPage() {
         isOpen={showClearModal}
         title="Resetar Sistema?"
         message={`🔴 ATENÇÃO CRÍTICA!\n\nEsta ação irá:\n• APAGAR TODOS os dados atuais\n• Restaurar os dados de exemplo iniciais\n• NÃO PODE ser desfeita\n\nFaça um backup antes de prosseguir!\n\nTem CERTEZA ABSOLUTA que deseja continuar?`}
-        confirmText="Sim, RESETAR TUDO"
+        confirmText={isClearing ? "Resetando..." : "Sim, RESETAR TUDO"}
         cancelText="Não, cancelar"
         onConfirm={confirmClear}
         onCancel={() => setShowClearModal(false)}
