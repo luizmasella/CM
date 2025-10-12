@@ -53,6 +53,7 @@ export default function PericiaForm() {
   };
 
   const addReclamadaField = () => setFormData(prev => ({ ...prev, reclamadas: [...prev.reclamadas, ''] }));
+  
   const removeReclamadaField = (index: number) => {
     const newReclamadas = formData.reclamadas.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, reclamadas: newReclamadas.length > 0 ? newReclamadas : [''] }));
@@ -61,7 +62,6 @@ export default function PericiaForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação mínima: apenas número do processo
     if (!formData.numeroProcesso || formData.numeroProcesso.trim() === '') {
       toast.error('❌ Número do processo é obrigatório!');
       return;
@@ -100,7 +100,6 @@ export default function PericiaForm() {
             </div>
             
             <div className="p-6 space-y-6">
-                {/* SEÇÃO 1: DADOS DO PROCESSO */}
                 <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
                     <h3 className="font-bold text-lg mb-4 text-blue-800 flex items-center gap-2">
                       📋 Dados do Processo
@@ -166,7 +165,6 @@ export default function PericiaForm() {
                     </div>
                 </div>
 
-                {/* SEÇÃO 2: PARTES DO PROCESSO */}
                 <div className="bg-green-50 p-6 rounded-lg border-2 border-green-200">
                     <h3 className="font-bold text-lg mb-4 text-green-800 flex items-center gap-2">
                       👥 Partes do Processo
@@ -220,7 +218,6 @@ export default function PericiaForm() {
                     </div>
                 </div>
 
-                {/* SEÇÃO 3: DATA E LOCAL DA PERÍCIA */}
                 <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
                     <h3 className="font-bold text-lg mb-4 text-purple-800 flex items-center gap-2">
                       📅 Data e Local da Perícia
@@ -284,7 +281,6 @@ export default function PericiaForm() {
                     </div>
                 </div>
 
-                {/* SEÇÃO 4: STATUS E HONORÁRIOS */}
                 <div className="bg-yellow-50 p-6 rounded-lg border-2 border-yellow-200">
                     <h3 className="font-bold text-lg mb-4 text-yellow-800 flex items-center gap-2">
                       💰 Status e Honorários
@@ -355,7 +351,6 @@ export default function PericiaForm() {
                     </div>
                 </div>
 
-                {/* SEÇÃO 5: PRAZOS */}
                 <div className="bg-orange-50 p-6 rounded-lg border-2 border-orange-200">
                     <h3 className="font-bold text-lg mb-4 text-orange-800 flex items-center gap-2">
                       ⏰ Prazos Processuais
@@ -390,7 +385,6 @@ export default function PericiaForm() {
                     </div>
                 </div>
 
-                {/* SEÇÃO 6: OBSERVAÇÕES */}
                 <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-200">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       📝 Observações e Anotações
@@ -406,7 +400,6 @@ export default function PericiaForm() {
                     <p className="text-xs text-gray-500 mt-1">Campo livre para anotações gerais sobre o processo</p>
                 </div>
 
-                {/* BOTÕES */}
                 <div className="flex justify-end gap-4 pt-4 border-t-2 border-gray-200 bg-white sticky bottom-0 pb-4">
                     <button 
                       type="button" 
@@ -420,11 +413,4 @@ export default function PericiaForm() {
                       onClick={handleSubmit}
                       className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md font-medium flex items-center gap-2"
                     >
-                      {editingId ? '💾 Salvar Alterações' : '✅ Cadastrar Perícia'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-  );
-}
+                      {editingId ? '💾 Salvar Alterações' : '✅ Cadastrar
