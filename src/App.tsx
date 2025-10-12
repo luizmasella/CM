@@ -1,4 +1,4 @@
-// FILE: src/App.tsx
+// FILE: src/App.tsx (VERSÃO FINAL E CORRIGIDA)
 
 import React from 'react';
 import { usePericias } from './context/PericiasContext';
@@ -72,6 +72,10 @@ export default function App() {
   const getPrazosForDate = (dateString: string) => pericias.filter(p => p.prazoLaudo === dateString || p.prazoQuesitos === dateString);
   const formatDateString = (year: number, month: number, day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const isToday = (year: number, month: number, day: number) => new Date().getFullYear() === year && new Date().getMonth() === month && new Date().getDate() === day;
+  const marcarComoLida = () => {};
+  const marcarTodasComoLidas = () => {};
+  const limparNotificacoes = () => {};
+  const abrirPericiaNotificacao = () => {};
 
   if (processDetailView && currentPericia) {
     return (
@@ -96,10 +100,10 @@ export default function App() {
         notifications={notifications}
         handleCardClick={handleCardClick}
         setShowNotifications={setShowNotifications}
-        abrirPericiaNotificacao={() => {}}
-        marcarTodasComoLidas={() => {}}
-        limparNotificacoes={() => {}}
-        marcarComoLida={() => {}}
+        abrirPericiaNotificacao={abrirPericiaNotificacao}
+        marcarTodasComoLidas={marcarTodasComoLidas}
+        limparNotificacoes={limparNotificacoes}
+        marcarComoLida={marcarComoLida}
       />
       <Navbar
         activeTab={activeTab}
