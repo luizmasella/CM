@@ -1,4 +1,6 @@
 // FILE: src/components/PericiaDetails.tsx
+// CORRIGIDO: Edição completa de TODOS os campos + Exclusão funcionando
+
 import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
@@ -34,22 +36,32 @@ export default function PericiaDetails() {
   if (!showDetails || !selectedPericia || !editData) { return null; }
 
   const handleSave = () => { 
-    const periciaAtualizada = {
-      ...editData,
-      honorariosSolicitados: parseFloat(editData.honorariosSolicitados) || 0,
-      honorariosDeferidos: parseFloat(editData.honorariosDeferidos) || 0,
-      reclamadas: editData.reclamadas.filter((r: string) => r.trim() !== ''),
-      prazoLaudo: editData.prazoLaudo || null,
-      prazoQuesitos: editData.prazoQuesitos || null,
-    };
-    
-    if (editData.regiao && !regioes.includes(editData.regiao)) {
-      addRegiao(editData.regiao);
+    try {
+      const periciaAtualizada = {
+        ...editData,
+        honorariosSolicitados: parseFloat(editData.honorariosSolicitados) || 0,
+        honorariosDeferidos: parseFloat(editData.honorariosDeferidos) || 0,
+        reclamadas: editData.reclamadas.filter((r: string) => r.trim() !== ''),
+        prazoLaudo: editData.prazoLaudo || null,
+        prazoQuesitos: editData.prazoQuesitos || null,
+      };
+      
+      if (editData.regiao && !regioes.includes(editData.regiao)) {
+        addRegiao(editData.regiao);
+      }
+      
+      const success = updatePericia(periciaAtualizada);
+      
+      if (success) {
+        setIsEditing(false);
+        toast.success('✅ Perícia atualizada com sucesso!');
+      } else {
+        toast.error('❌ Erro ao atualizar perícia. Tente novamente.');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      toast.error('❌ Erro inesperado ao salvar alterações!');
     }
-    
-    updatePericia(periciaAtualizada); 
-    setIsEditing(false);
-    toast.success('✅ Perícia atualizada com sucesso!');
   };
 
   const handleDelete = () => {
@@ -58,12 +70,26 @@ export default function PericiaDetails() {
 
   const confirmDelete = () => {
     setIsDeleting(true);
-    setTimeout(() => {
-      deletePericia(selectedPericia.id);
+    
+    try {
+      setTimeout(() => {
+        const success = deletePericia(selectedPericia.id);
+        
+        if (success) {
+          setShowDeleteModal(false);
+          closeDetails();
+          toast.success('✅ Perícia excluída com sucesso!');
+        } else {
+          setIsDeleting(false);
+          toast.error('❌ Erro ao excluir perícia. Tente novamente.');
+        }
+      }, 500);
+    } catch (error) {
+      console.error('Erro ao deletar:', error);
+      setIsDeleting(false);
       setShowDeleteModal(false);
-      closeDetails();
-      toast.success('✅ Perícia excluída com sucesso!');
-    }, 500);
+      toast.error('❌ Erro inesperado ao excluir perícia!');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -116,14 +142,17 @@ export default function PericiaDetails() {
                   <button 
                     onClick={() => setIsEditing(true)} 
                     className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    disabled={isDeleting}
                   >
                     <Edit2 size={18} /> Editar
                   </button>
                   <button 
                     onClick={handleDelete}
-                    className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                    disabled={isDeleting}
                   >
-                    <Trash2 size={18} /> Excluir
+                    <Trash2 size={18} /> 
+                    {isDeleting ? 'Excluindo...' : 'Excluir'}
                   </button>
                 </>
               ) : (
@@ -154,6 +183,7 @@ export default function PericiaDetails() {
               <button 
                 onClick={closeDetails} 
                 className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                disabled={isDeleting}
               >
                 <X size={24} />
               </button>
