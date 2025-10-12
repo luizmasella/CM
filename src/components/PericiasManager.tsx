@@ -1,17 +1,80 @@
 // FILE: src/components/PericiasManager.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
 import { statusConfig } from '../config/constants';
-import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function PericiasManager() {
-  const { deletePericia, filteredPericias, pericias, searchTerm, setSearchTerm, filterStatus, setFilterStatus, clearAllFilters } = usePericias();
+  const { deletePericia, pericias, searchTerm, setSearchTerm, filterStatus, setFilterStatus, clearAllFilters } = usePericias();
   const { handleShowNewForm, handleEdit, handleViewDetails, openProcessPage } = useUI();
   const { toast } = useToast();
   
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  
+  // Filtros avançados locais
+  const [advancedFilters, setAdvancedFilters] = useState({
+    vara: '',
+    juiz: '',
+    regiao: '',
+    reclamada: '',
+    tipo: ''
+  });
+
+  // Filtra pericias com busca avançada
+  const filteredPericias = useMemo(() => {
+    let result = pericias;
+
+    // Filtro básico de texto (processo e reclamante)
+    if (searchTerm) {
+      result = result.filter(p =>
+        p.numeroProcesso.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.reclamante.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtro de status
+    if (filterStatus !== 'todos') {
+      result = result.filter(p => p.status === filterStatus);
+    }
+
+    // Filtros avançados
+    if (advancedFilters.vara) {
+      result = result.filter(p =>
+        p.vara.toLowerCase().includes(advancedFilters.vara.toLowerCase())
+      );
+    }
+
+    if (advancedFilters.juiz) {
+      result = result.filter(p =>
+        p.juiz.toLowerCase().includes(advancedFilters.juiz.toLowerCase())
+      );
+    }
+
+    if (advancedFilters.regiao) {
+      result = result.filter(p =>
+        p.regiao.toLowerCase().includes(advancedFilters.regiao.toLowerCase())
+      );
+    }
+
+    if (advancedFilters.reclamada) {
+      result = result.filter(p =>
+        p.reclamadas.some(r =>
+          r.toLowerCase().includes(advancedFilters.reclamada.toLowerCase())
+        )
+      );
+    }
+
+    if (advancedFilters.tipo) {
+      result = result.filter(p =>
+        p.tipo.toLowerCase().includes(advancedFilters.tipo.toLowerCase())
+      );
+    }
+
+    return result;
+  }, [pericias, searchTerm, filterStatus, advancedFilters]);
   
   const exportarRelatorio = () => {
     toast.info('📊 Funcionalidade de exportação está na aba Relatórios');
@@ -25,7 +88,6 @@ export default function PericiasManager() {
     if (confirmed) {
       setDeletingId(id);
       
-      // Simula um pequeno delay para mostrar o loading
       setTimeout(() => {
         deletePericia(id);
         setDeletingId(null);
@@ -34,7 +96,35 @@ export default function PericiasManager() {
     }
   };
 
-  const hasActiveFilters = searchTerm !== '' || filterStatus !== 'todos';
+  const handleClearAllFilters = () => {
+    clearAllFilters();
+    setAdvancedFilters({
+      vara: '',
+      juiz: '',
+      regiao: '',
+      reclamada: '',
+      tipo: ''
+    });
+    toast.info('🔄 Todos os filtros foram limpos');
+  };
+
+  const hasActiveFilters = 
+    searchTerm !== '' || 
+    filterStatus !== 'todos' ||
+    advancedFilters.vara !== '' ||
+    advancedFilters.juiz !== '' ||
+    advancedFilters.regiao !== '' ||
+    advancedFilters.reclamada !== '' ||
+    advancedFilters.tipo !== '';
+
+  const activeFiltersCount = 
+    (searchTerm ? 1 : 0) +
+    (filterStatus !== 'todos' ? 1 : 0) +
+    (advancedFilters.vara ? 1 : 0) +
+    (advancedFilters.juiz ? 1 : 0) +
+    (advancedFilters.regiao ? 1 : 0) +
+    (advancedFilters.reclamada ? 1 : 0) +
+    (advancedFilters.tipo ? 1 : 0);
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -58,7 +148,8 @@ export default function PericiasManager() {
           </div>
       </div>
     
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* FILTROS BÁSICOS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input 
@@ -66,7 +157,7 @@ export default function PericiasManager() {
                 placeholder="Buscar por processo ou reclamante..." 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
-                className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pl-10"
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2 pl-10 pr-10"
               />
               {searchTerm && (
                 <button
@@ -93,26 +184,99 @@ export default function PericiasManager() {
           </div>
       </div>
 
-      {/* Indicador de Filtros Ativos + Botão Limpar */}
+      {/* BOTÃO BUSCA AVANÇADA */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+        >
+          {showAdvancedSearch ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          Busca Avançada
+          {activeFiltersCount > 2 && (
+            <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+              +{activeFiltersCount - 2}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* FILTROS AVANÇADOS */}
+      {showAdvancedSearch && (
+        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <Search size={18} />
+            Filtros Avançados
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vara</label>
+              <input
+                type="text"
+                placeholder="Ex: 1ª Vara..."
+                value={advancedFilters.vara}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, vara: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Juiz(a)</label>
+              <input
+                type="text"
+                placeholder="Nome do juiz..."
+                value={advancedFilters.juiz}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, juiz: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Região</label>
+              <input
+                type="text"
+                placeholder="Ex: TRT 2ª Região..."
+                value={advancedFilters.regiao}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, regiao: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reclamada</label>
+              <input
+                type="text"
+                placeholder="Nome da empresa..."
+                value={advancedFilters.reclamada}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, reclamada: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+              <input
+                type="text"
+                placeholder="Ex: Médica..."
+                value={advancedFilters.tipo}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, tipo: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg shadow-sm p-2"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Indicador de Filtros Ativos */}
       {hasActiveFilters && (
         <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-center gap-2">
             <Filter className="text-blue-600" size={18} />
             <span className="text-sm text-blue-800 font-medium">
-              Filtros ativos: 
-              {searchTerm && ` Busca "${searchTerm}"`}
-              {filterStatus !== 'todos' && ` • Status: ${statusConfig[filterStatus]?.label}`}
+              {activeFiltersCount} filtro(s) ativo(s)
             </span>
           </div>
           <button
-            onClick={() => {
-              clearAllFilters();
-              toast.info('🔄 Filtros limpos');
-            }}
+            onClick={handleClearAllFilters}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
           >
             <X size={16} />
-            Limpar Filtros
+            Limpar Todos
           </button>
         </div>
       )}
@@ -208,10 +372,7 @@ export default function PericiasManager() {
               <p className="text-gray-500 font-medium">Nenhuma perícia encontrada</p>
               {hasActiveFilters && (
                 <button
-                  onClick={() => {
-                    clearAllFilters();
-                    toast.info('🔄 Filtros limpos');
-                  }}
+                  onClick={handleClearAllFilters}
                   className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   Limpar filtros e ver todas
@@ -228,7 +389,7 @@ export default function PericiasManager() {
         </p>
         {hasActiveFilters && (
           <p className="text-blue-600 font-medium">
-            ✓ Filtros aplicados
+            ✓ {activeFiltersCount} filtro(s) aplicado(s)
           </p>
         )}
       </div>
