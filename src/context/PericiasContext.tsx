@@ -42,7 +42,10 @@ interface IPericiasContext {
   filteredPericias: Pericia[]; 
   stats: any; 
   periciasAtrasadas: Pericia[]; 
-  isPrazoVencido: (prazo: string | null) => boolean; 
+  prazos7Dias: Pericia[];
+  prazos15Dias: Pericia[];
+  isPrazoVencido: (prazo: string | null) => boolean;
+  getPrazoStatus: (prazo: string | null) => 'vencido' | '7dias' | '15dias' | 'normal';
 }
 
 const PericiasContext = createContext<IPericiasContext | undefined>(undefined);
@@ -64,7 +67,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
   };
   
   const deletePericia = (id: number) => { 
-    if (window.confirm('Deseja excluir?')) { 
+    if (window.confirm('Deseja excluir esta perícia?')) { 
       setPericias(prev => prev.filter(p => p.id !== id)); 
     } 
   };
@@ -79,11 +82,59 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     return dataPrazo < hoje; 
   };
 
+  // Nova função: verifica se prazo vence em X dias
+  const diasParaPrazo = (prazo: string | null): number => {
+    if (!prazo) return 999;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const [ano, mes, dia] = prazo.split('-').map(Number);
+    const dataPrazo = new Date(ano, mes - 1, dia);
+    dataPrazo.setHours(0, 0, 0, 0);
+    const diffTime = dataPrazo.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Nova função: retorna status do prazo
+  const getPrazoStatus = (prazo: string | null): 'vencido' | '7dias' | '15dias' | 'normal' => {
+    if (!prazo) return 'normal';
+    const dias = diasParaPrazo(prazo);
+    if (dias < 0) return 'vencido';
+    if (dias >= 0 && dias <= 7) return '7dias';
+    if (dias > 7 && dias <= 15) return '15dias';
+    return 'normal';
+  };
+
+  // Perícias com prazos vencidos
   const periciasAtrasadas = useMemo(() => 
     pericias.filter(p => 
       (p.prazoLaudo && isPrazoVencido(p.prazoLaudo)) || 
       (p.prazoQuesitos && isPrazoVencido(p.prazoQuesitos))
     ), 
+    [pericias]
+  );
+
+  // Perícias com prazos a vencer em 7 dias
+  const prazos7Dias = useMemo(() => 
+    pericias.filter(p => {
+      const prazos = [p.prazoLaudo, p.prazoQuesitos].filter(Boolean);
+      return prazos.some(prazo => {
+        const dias = diasParaPrazo(prazo);
+        return dias >= 0 && dias <= 7;
+      });
+    }),
+    [pericias]
+  );
+
+  // Perícias com prazos a vencer em 15 dias
+  const prazos15Dias = useMemo(() => 
+    pericias.filter(p => {
+      const prazos = [p.prazoLaudo, p.prazoQuesitos].filter(Boolean);
+      return prazos.some(prazo => {
+        const dias = diasParaPrazo(prazo);
+        return dias > 7 && dias <= 15;
+      });
+    }),
     [pericias]
   );
   
@@ -104,11 +155,22 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
       // FILTRO 4: Prazos
       let matchesPrazo = true;
       if (filterPrazo === 'vencidos') {
-        // Mostra perícias que TÊM prazos vencidos (laudo OU quesitos)
         matchesPrazo = (
           (p.prazoLaudo && isPrazoVencido(p.prazoLaudo)) || 
           (p.prazoQuesitos && isPrazoVencido(p.prazoQuesitos))
         );
+      } else if (filterPrazo === '7dias') {
+        const prazos = [p.prazoLaudo, p.prazoQuesitos].filter(Boolean);
+        matchesPrazo = prazos.some(prazo => {
+          const dias = diasParaPrazo(prazo);
+          return dias >= 0 && dias <= 7;
+        });
+      } else if (filterPrazo === '15dias') {
+        const prazos = [p.prazoLaudo, p.prazoQuesitos].filter(Boolean);
+        matchesPrazo = prazos.some(prazo => {
+          const dias = diasParaPrazo(prazo);
+          return dias > 7 && dias <= 15;
+        });
       }
       
       return matchesSearch && matchesStatus && matchesDate && matchesPrazo;
@@ -123,13 +185,15 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     aguarda_sentenca: pericias.filter(p => p.status === 'aguarda_sentenca').length, 
     aguarda_pagamento: pericias.filter(p => p.status === 'aguarda_pagamento').length, 
     concluidas: pericias.filter(p => p.status === 'concluida').length, 
-    prazosVencidos: periciasAtrasadas.length, 
+    prazosVencidos: periciasAtrasadas.length,
+    prazos7Dias: prazos7Dias.length,
+    prazos15Dias: prazos15Dias.length,
     hojeAgendadas: pericias.filter(p => p.data === new Date().toISOString().split('T')[0]).length, 
     totalHonorariosSolicitados: pericias.reduce((sum, p) => sum + (p.honorariosSolicitados || 0), 0), 
     totalHonorariosDeferidos: pericias.reduce((sum, p) => sum + (p.honorariosDeferidos || 0), 0), 
     honorariosAReceber: pericias.filter(p => p.status === 'aguarda_pagamento').reduce((sum, p) => sum + p.honorariosDeferidos, 0), 
     totalHonorariosPagos: pericias.filter(p => p.status === 'concluida').reduce((sum, p) => sum + p.honorariosDeferidos, 0), 
-  }), [pericias, periciasAtrasadas]);
+  }), [pericias, periciasAtrasadas, prazos7Dias, prazos15Dias]);
 
   const value = useMemo(() => ({ 
     pericias, 
@@ -146,9 +210,12 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     setFilterPrazo, 
     filteredPericias, 
     stats, 
-    periciasAtrasadas, 
-    isPrazoVencido 
-  }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, periciasAtrasadas]);
+    periciasAtrasadas,
+    prazos7Dias,
+    prazos15Dias,
+    isPrazoVencido,
+    getPrazoStatus
+  }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, periciasAtrasadas, prazos7Dias, prazos15Dias]);
 
   return <PericiasContext.Provider value={value}>{children}</PericiasContext.Provider>;
 }
