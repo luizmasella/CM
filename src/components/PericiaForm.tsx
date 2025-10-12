@@ -1,4 +1,4 @@
-// FILE: src/components/PericiaForm.tsx (VERSÃO CORRIGIDA SEM A CHAVE EXTRA)
+// FILE: src/components/PericiaForm.tsx (CORRECTED)
 
 import React, { useState, useEffect } from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -45,7 +45,6 @@ export default function PericiaForm({ setShowForm, editingId, setEditingId }: Pe
         });
       }
     } else {
-        // Limpa o formulário ao abrir para "Nova Perícia"
         setFormData({
             numeroProcesso: '', reclamante: '', reclamadas: [''], data: '', hora: '',
             tipo: '', vara: '', juiz: '', local: '', regiao: '', status: 'aguarda_ato_pericial',
