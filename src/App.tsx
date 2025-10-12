@@ -1,5 +1,6 @@
 // FILE: src/App.tsx (VERSÃO FINAL E COMPLETA DA NOSSA REATORAÇÃO)
 
+import RelatoriosPage from './components/RelatoriosPage';
 import React from 'react';
 import { usePericias } from './context/PericiasContext';
 import Header from './components/Header';
@@ -146,3 +147,4 @@ export default function App() {
     </div>
   );
 }
+
