@@ -1,4 +1,4 @@
-// FILE: src/components/CalendarView.tsx (VERSÃO COMPLETA E CORRIGIDA)
+// FILE: src/components/CalendarView.tsx
 
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
@@ -66,6 +66,10 @@ export default function CalendarView() {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Calendar className="text-blue-600" />Perícias no Mês</h3>
           {pericias.filter(p => new Date(p.data).getMonth() === currentMonth.getMonth()).slice(0,5).map(p => <div key={p.id} onClick={() => openProcessPage(p)} className="p-3 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer"><p className="font-semibold text-sm">{new Date(p.data).toLocaleDateString('pt-BR')}</p><p className="text-xs">{p.reclamante}</p></div>) }
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><AlertTriangle className="text-yellow-600" />Prazos Próximos</h3>
+          <p className="text-gray-500 text-sm">Nenhum prazo nos próximos 7 dias.</p>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><XCircle className="text-red-600" />Prazos Vencidos</h3>
