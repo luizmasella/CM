@@ -1,4 +1,4 @@
-// FILE: src/components/Navbar.tsx
+// FILE: src/components/Navbar.tsx (APAGUE TUDO E COLE ISTO)
 
 import React from 'react';
 import { useUI } from '../context/UIContext';
@@ -26,7 +26,7 @@ export default function Navbar() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-4 font-medium flex items-center gap-2 border-b-3 transition-all ${activeTab === tab.id ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-gray-600 hover:text-blue-600 hover:bg-gray-50'}`}
+              className={`px-6 py-4 font-medium flex items-center gap-2 border-b-4 transition-all ${activeTab === tab.id ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-gray-600 hover:text-blue-600 hover:bg-gray-50'}`}
             >
               <tab.icon size={20} />
               {tab.label}
