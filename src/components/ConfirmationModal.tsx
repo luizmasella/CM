@@ -48,9 +48,22 @@ export default function ConfirmationModal({
 
   const config = colors[type];
 
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Fecha o modal apenas se o clique for diretamente no overlay
+    if (e.target === e.currentTarget) {
+      onCancel();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-scale-in">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+      onClick={handleOverlayClick}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-scale-in"
+        onClick={(e) => e.stopPropagation()} // Impede que cliques dentro do modal o fechem
+      >
         {/* Header */}
         <div className={`${config.bg} border-b-2 ${config.border} p-6 rounded-t-xl`}>
           <div className="flex items-start justify-between">

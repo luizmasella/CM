@@ -1,15 +1,13 @@
-// FILE: src/context/UIContext.tsx
-// ✅ VERSÃO CORRIGIDA - openProcessPage agora funciona corretamente
-
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+// src/context/UIContext.tsx
+import React, { createContext, useContext, useState, ReactNode, useMemo, MutableRefObject } from 'react';
 
 interface UIContextProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   showForm: boolean;
   editingId: number | null;
-  handleShowNewForm: () => void;
-  handleEdit: (pericia: any) => void;
+  handleShowNewForm: (triggerRef?: MutableRefObject<HTMLElement | null>) => void;
+  handleEdit: (pericia: any, triggerRef?: MutableRefObject<HTMLElement | null>) => void;
   closeForm: () => void;
   showDetails: boolean;
   selectedPericia: any | null;
@@ -22,6 +20,7 @@ interface UIContextProps {
   showNotifications: boolean;
   setShowNotifications: (show: boolean) => void;
   handleCardClick: (filterType: string, value: string | null) => void;
+  triggerElementRef: MutableRefObject<HTMLElement | null> | null;
 }
 
 const UIContext = createContext<UIContextProps | undefined>(undefined);
@@ -35,24 +34,28 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [processDetailView, setProcessDetailView] = useState(false);
   const [currentPericia, setCurrentPericia] = useState<any | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [triggerElementRef, setTriggerElementRef] = useState<MutableRefObject<HTMLElement | null> | null>(null);
 
   const handleCardClick = (filterType: string, value: string | null) => {
     setActiveTab('pericias');
   };
 
-  const handleShowNewForm = () => { 
+  const handleShowNewForm = (triggerRef?: MutableRefObject<HTMLElement | null>) => {
     setEditingId(null); 
-    setShowForm(true); 
+    setShowForm(true);
+    if (triggerRef) setTriggerElementRef(triggerRef);
   };
 
-  const handleEdit = (pericia: any) => { 
+  const handleEdit = (pericia: any, triggerRef?: MutableRefObject<HTMLElement | null>) => {
     setEditingId(pericia.id); 
     setShowForm(true); 
+    if (triggerRef) setTriggerElementRef(triggerRef);
   };
 
   const closeForm = () => { 
     setShowForm(false); 
-    setEditingId(null); 
+    setEditingId(null);
+    setTriggerElementRef(null);
   };
 
   const handleViewDetails = (pericia: any) => { 
@@ -65,7 +68,6 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setSelectedPericia(null); 
   };
   
-  // ✅ CORRIGIDO: Agora abre a página de detalhes completa
   const openProcessPage = (pericia: any) => { 
     setCurrentPericia(pericia); 
     setProcessDetailView(true); 
@@ -94,7 +96,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
     closeProcessPage, 
     showNotifications, 
     setShowNotifications, 
-    handleCardClick 
+    handleCardClick,
+    triggerElementRef,
   }), [
     activeTab, 
     showForm, 
@@ -103,7 +106,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
     selectedPericia, 
     processDetailView, 
     currentPericia, 
-    showNotifications
+    showNotifications,
+    triggerElementRef,
   ]);
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;

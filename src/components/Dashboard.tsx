@@ -3,7 +3,33 @@
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
-import { TrendingUp, FileText, Calendar, AlertTriangle, Clock, Target, CheckCircle, DollarSign, FileQuestion, Gavel, AlertCircle } from 'lucide-react';
+import { TrendingUp, FileText, Calendar, AlertTriangle, Clock, Target, CheckCircle, DollarSign, FileQuestion, Gavel, AlertCircle, PlusCircle } from 'lucide-react';
+
+// Novo componente para o estado vazio
+const EmptyStateDashboard = () => {
+    const { setShowForm, setActiveTab } = useUI();
+
+    const handleAddNew = () => {
+        setActiveTab('pericias');
+        setShowForm(true);
+    };
+
+    return (
+        <div className="text-center p-12 bg-gray-50 rounded-xl shadow-inner border border-gray-200">
+            <FileText size={60} className="mx-auto text-gray-400" />
+            <h3 className="text-xl font-bold text-gray-700 mt-4">Nenhuma Perícia Cadastrada</h3>
+            <p className="text-gray-500 mt-2 mb-6">Comece adicionando sua primeira perícia para ver suas estatísticas aqui.</p>
+            <button
+                onClick={handleAddNew}
+                className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+            >
+                <PlusCircle size={20} />
+                Adicionar Primeira Perícia
+            </button>
+        </div>
+    );
+};
+
 
 export default function Dashboard() {
     const { stats, periciasAtrasadas, prazos7Dias, prazos15Dias, setFilterStatus, setFilterDate, setFilterPrazo, clearAllFilters } = usePericias();
@@ -27,6 +53,11 @@ export default function Dashboard() {
     };
 
     if (!stats) return <div className="p-6 text-center">Carregando estatísticas...</div>;
+
+    // Condição para exibir o estado vazio
+    if (stats.total === 0) {
+        return <EmptyStateDashboard />;
+    }
 
     return (
         <div className="bg-white rounded-xl shadow-lg p-6">
