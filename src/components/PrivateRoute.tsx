@@ -6,5 +6,6 @@ import { useAuth } from '../context/AuthContext';
 export function PrivateRoute() {
   const { currentUser } = useAuth();
 
-  return currentUser ? <Outlet /> : <Navigate to="/login" />;
+  // Se o usuário não estiver logado, redireciona para a HomePage
+  return currentUser ? <Outlet /> : <Navigate to="/" />;
 }
