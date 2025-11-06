@@ -453,116 +453,131 @@ export default function PericiasManager() {
         </div>
       )}
 
-      {/* TABELA */}
+      {/* TABELA E ESTADOS VAZIOS */}
       <div className="overflow-x-auto">
+        {pericias.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText size={50} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-bold text-gray-700">Comece a organizar suas perícias</h3>
+            <p className="text-gray-500 mt-2 mb-6">Clique no botão abaixo para adicionar sua primeira perícia e começar a gerenciar.</p>
+            <button
+              onClick={handleShowNewForm}
+              className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+            >
+              <Plus size={20} />
+              Adicionar Primeira Perícia
+            </button>
+          </div>
+        ) : filteredPericias.length === 0 ? (
+          <div className="text-center py-12">
+            <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
+            <h3 className="text-lg font-bold text-gray-700">Nenhuma perícia encontrada</h3>
+            <p className="text-gray-500 mt-2 mb-6">
+              Sua busca ou os filtros aplicados não retornaram resultados.
+            </p>
+            <button
+              onClick={handleClearAllFilters}
+              className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 mx-auto"
+            >
+              <X size={20} />
+              Limpar Filtros e Ver Todas
+            </button>
+          </div>
+        ) : (
           <table className="w-full">
-              <thead className="bg-gray-100 border-b-2 border-gray-200">
-                  <tr>
-                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Processo</th>
-                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Reclamante</th>
-                      <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Data</th>
-                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Prazos</th>
-                      <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
-                      <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                      <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Ações</th>
+            <thead className="bg-gray-100 border-b-2 border-gray-200">
+              <tr>
+                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Processo</th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Reclamante</th>
+                <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Data</th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Prazos</th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
+                <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPericias.map(pericia => {
+                const StatusIcon = statusConfig[pericia.status]?.icon;
+                const isDeleting = deletingId === pericia.id;
+
+                return (
+                  <tr
+                    key={pericia.id}
+                    onClick={() => handleViewDetails(pericia)}
+                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${isDeleting ? 'opacity-50' : ''}`}
+                  >
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openProcessPage(pericia); }}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800 underline transition-colors"
+                      >
+                        {pericia.numeroProcesso}
+                      </button>
+                    </td>
+                    <td className="px-3 py-3">
+                      <p className="text-sm font-medium text-gray-900">{pericia.reclamante}</p>
+                    </td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(pericia.data).toLocaleDateString('pt-BR')}
+                        </p>
+                        <p className="text-xs text-gray-500">{pericia.hora}</p>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-col gap-1">
+                        {renderPrazoIndicator(pericia.prazoLaudo, 'laudo')}
+                        {renderPrazoIndicator(pericia.prazoQuesitos, 'quesitos')}
+                        {!pericia.prazoLaudo && !pericia.prazoQuesitos && (
+                          <span className="text-xs text-gray-400">Sem prazo</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {pericia.tipo}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-center">
+                      {statusConfig[pericia.status] && (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[pericia.status].color}`}>
+                          {StatusIcon && <StatusIcon size={12} className="mr-1" />}
+                          {statusConfig[pericia.status].label}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }}
+                          className="text-blue-600 hover:text-blue-900 transition-colors p-1 hover:bg-blue-50 rounded"
+                          title="Editar"
+                          disabled={isDeleting}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(pericia.id, pericia.numeroProcesso); }}
+                          className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Excluir"
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          ) : (
+                            <Trash2 size={18} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPericias.map(pericia => {
-                      const StatusIcon = statusConfig[pericia.status]?.icon;
-                      const isDeleting = deletingId === pericia.id;
-                      
-                      return (
-                          <tr 
-                            key={pericia.id} 
-                            onClick={() => handleViewDetails(pericia)} 
-                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${isDeleting ? 'opacity-50' : ''}`}
-                          >
-                              <td className="px-3 py-3 whitespace-nowrap">
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); openProcessPage(pericia); }} 
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 underline transition-colors"
-                                  >
-                                    {pericia.numeroProcesso}
-                                  </button>
-                              </td>
-                              <td className="px-3 py-3">
-                                <p className="text-sm font-medium text-gray-900">{pericia.reclamante}</p>
-                              </td>
-                              <td className="px-3 py-3 text-center whitespace-nowrap">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {new Date(pericia.data).toLocaleDateString('pt-BR')}
-                                  </p>
-                                  <p className="text-xs text-gray-500">{pericia.hora}</p>
-                                </div>
-                              </td>
-                              <td className="px-3 py-3">
-                                <div className="flex flex-col gap-1">
-                                  {renderPrazoIndicator(pericia.prazoLaudo, 'laudo')}
-                                  {renderPrazoIndicator(pericia.prazoQuesitos, 'quesitos')}
-                                  {!pericia.prazoLaudo && !pericia.prazoQuesitos && (
-                                    <span className="text-xs text-gray-400">Sem prazo</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 whitespace-nowrap">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  {pericia.tipo}
-                                </span>
-                              </td>
-                              <td className="px-3 py-3 whitespace-nowrap text-center">
-                                  {statusConfig[pericia.status] && (
-                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[pericia.status].color}`}>
-                                          {StatusIcon && <StatusIcon size={12} className="mr-1" />}
-                                          {statusConfig[pericia.status].label}
-                                      </span>
-                                  )}
-                              </td>
-                              <td className="px-3 py-3 whitespace-nowrap text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }} 
-                                        className="text-blue-600 hover:text-blue-900 transition-colors p-1 hover:bg-blue-50 rounded" 
-                                        title="Editar"
-                                        disabled={isDeleting}
-                                      >
-                                        <Edit2 size={18} />
-                                      </button>
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); handleDelete(pericia.id, pericia.numeroProcesso); }} 
-                                        className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed" 
-                                        title="Excluir"
-                                        disabled={isDeleting}
-                                      >
-                                        {isDeleting ? (
-                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                                        ) : (
-                                          <Trash2 size={18} />
-                                        )}
-                                      </button>
-                                  </div>
-                              </td>
-                          </tr>
-                      );
-                  })}
-              </tbody>
+                );
+              })}
+            </tbody>
           </table>
-          
-          {filteredPericias.length === 0 && (
-            <div className="text-center py-12">
-              <AlertCircle className="mx-auto text-gray-400 mb-3" size={48} />
-              <p className="text-gray-500 font-medium">Nenhuma perícia encontrada</p>
-              {hasActiveFilters && (
-                <button
-                  onClick={handleClearAllFilters}
-                  className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  Limpar filtros e ver todas
-                </button>
-              )}
-            </div>
-          )}
+        )}
       </div>
       
       <div className="mt-4 flex justify-between items-center text-sm text-gray-600">

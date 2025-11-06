@@ -328,7 +328,7 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
 
   const clearAllData = (): boolean => {
     try {
-      setPericias(periciasIniciais);
+      setPericias([]); // CORREÇÃO: Define como array vazio
       localStorage.removeItem(STORAGE_KEY);
       return true;
     } catch (error) {
