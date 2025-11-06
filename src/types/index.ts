@@ -2,6 +2,7 @@
 
 export interface Pericia {
   id: number;
+  userId: number; // Adicionado para associar a perícia a um usuário
   numeroProcesso: string;
   reclamante: string;
   reclamadas: string[];
@@ -20,13 +21,21 @@ export interface Pericia {
   prazoQuesitos: string | null;
   observacoes: string;
   historico: any[];
+  files?: AttachedFile[];
+}
+
+export interface AttachedFile {
+  name: string;
+  url: string; // In a real app, this would be a URL to a storage service
+  type: string;
 }
 
 export interface IPericiasContext {
+  isLoading: boolean;
   pericias: Pericia[];
-  addPericia: (novaPericia: Omit<Pericia, 'id'>) => boolean;
-  updatePericia: (periciaAtualizada: Pericia) => boolean;
-  deletePericia: (id: number) => boolean;
+  addPericia: (novaPericia: Omit<Pericia, 'id' | 'userId'>) => Promise<boolean>;
+  updatePericia: (periciaAtualizada: Pericia) => Promise<boolean>;
+  deletePericia: (id: number) => Promise<boolean>;
   searchTerm: string;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
   filterStatus: string;
@@ -46,4 +55,26 @@ export interface IPericiasContext {
   exportData: () => string | null;
   importData: (jsonString: string) => boolean;
   clearAllData: () => boolean;
+}
+
+// === Authentication Types ===
+
+export interface User {
+  id: number;
+  email: string;
+  password?: string; // Should only be present on registration/login
+}
+
+export interface Credentials {
+  email: string;
+  password?: string; // Optional for scenarios like password reset later
+}
+
+export interface IAuthContext {
+  currentUser: User | null;
+  loading: boolean;
+  error: string | null;
+  login: (credentials: Credentials) => Promise<{ success: boolean; user?: Omit<User, 'password'>; message: string; token?: string }>;
+  register: (credentials: Credentials) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
 }

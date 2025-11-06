@@ -1,15 +1,49 @@
 // src/context/PericiasContext.tsx
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { Pericia, IPericiasContext } from '../types';
 import { usePericiasState } from '../hooks/usePericiasState';
-import { useDerivedPericiasData, getPrazoStatus } from '../hooks/useDerivedPericiasData';
+import { useDerivedPericiasData } from '../hooks/useDerivedPericiasData';
+import { periciaService } from '../services/periciaService';
+import { useAuth } from './AuthContext';
 import { errorHandler, ErrorCategory, ErrorSeverity } from '../utils/errorHandler';
 
 const PericiasContext = createContext<IPericiasContext | undefined>(undefined);
 
 export function PericiasProvider({ children }: { children: ReactNode }) {
-  const { pericias, setPericias } = usePericiasState();
+  const { currentUser } = useAuth();
+  const {
+    pericias,
+    setPericias,
+    isLoading,
+    setIsLoading,
+    error,
+    setError,
+  } = usePericiasState();
 
+  // Efeito para buscar os dados da API quando o usuário muda
+  useEffect(() => {
+    if (currentUser) {
+      const fetchPericias = async () => {
+        try {
+          setIsLoading(true);
+          const userPericias = await periciaService.getPericias(currentUser.id);
+          setPericias(userPericias);
+          setError(null);
+        } catch (e) {
+          setError('Falha ao carregar as perícias.');
+          errorHandler.logError(ErrorCategory.API, ErrorSeverity.CRITICAL, 'FetchPericias', e);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchPericias();
+    } else {
+      // Limpa os dados se o usuário fizer logout
+      setPericias([]);
+    }
+  }, [currentUser, setPericias, setIsLoading, setError]);
+
+  // Derivação de dados (filtros, estatísticas)
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [filterDate, setFilterDate] = useState('');
@@ -22,31 +56,28 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     prazos7Dias,
     prazos15Dias,
     isPrazoVencido,
+    getPrazoStatus,
   } = useDerivedPericiasData(pericias, searchTerm, filterStatus, filterDate, filterPrazo);
 
-  const addPericia = (novaPericia: Omit<Pericia, 'id'>): boolean => {
+  // Funções CRUD que interagem com a API
+  const addPericia = async (novaPericia: Omit<Pericia, 'id' | 'userId'>): Promise<boolean> => {
+    if (!currentUser) return false;
     try {
-      if (!novaPericia.numeroProcesso || novaPericia.numeroProcesso.trim() === '') {
-        throw new Error('Número do processo é obrigatório.');
-      }
-      const newId = pericias.length > 0 ? Math.max(...pericias.map(p => p.id)) + 1 : 1;
       const periciaComHistorico = {
         ...novaPericia,
-        id: newId,
         historico: [{ data: new Date().toISOString(), acao: 'Perícia cadastrada' }],
       };
-      setPericias(prev => [...prev, periciaComHistorico]);
+      const novaPericiaDaApi = await periciaService.createPericia(periciaComHistorico, currentUser.id);
+      setPericias(prev => [...prev, novaPericiaDaApi]);
       return true;
-    } catch (error) {
-      errorHandler.logError(ErrorCategory.PROCESSING, ErrorSeverity.HIGH, 'AddPericia', error);
+    } catch (e) {
+      errorHandler.logError(ErrorCategory.API, ErrorSeverity.HIGH, 'AddPericia', e);
       return false;
     }
   };
 
-  const updatePericia = (periciaAtualizada: Pericia): boolean => {
+  const updatePericia = async (periciaAtualizada: Pericia): Promise<boolean> => {
     try {
-      if (!periciaAtualizada.id) throw new Error('ID da perícia obrigatório');
-      
       const periciaComHistorico = {
         ...periciaAtualizada,
         historico: [
@@ -54,22 +85,26 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
           { data: new Date().toISOString(), acao: 'Perícia atualizada' }
         ]
       };
-
-      setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaComHistorico : p)));
+      const periciaAtualizadaDaApi = await periciaService.updatePericia(periciaAtualizada.id, periciaComHistorico);
+      setPericias(prev => prev.map(p => (p.id === periciaAtualizada.id ? periciaAtualizadaDaApi : p)));
       return true;
-    } catch (error) {
-      errorHandler.logError(ErrorCategory.PROCESSING, ErrorSeverity.HIGH, 'UpdatePericia', error);
+    } catch (e) {
+      errorHandler.logError(ErrorCategory.API, ErrorSeverity.HIGH, 'UpdatePericia', e);
       return false;
     }
   };
   
-  const deletePericia = (id: number): boolean => {
+  const deletePericia = async (id: number): Promise<boolean> => {
+    // Atualização otimista: remove do estado local primeiro
+    const originalPericias = [...pericias];
+    setPericias(prev => prev.filter(p => p.id !== id));
     try {
-      if (!id) throw new Error('ID inválido para exclusão');
-      setPericias(prev => prev.filter(p => p.id !== id));
+      await periciaService.deletePericia(id);
       return true;
-    } catch (error) {
-      errorHandler.logError(ErrorCategory.USER_ACTION, ErrorSeverity.HIGH, 'DeletePericia', error);
+    } catch (e) {
+      // Se a chamada de API falhar, reverte o estado
+      setPericias(originalPericias);
+      errorHandler.logError(ErrorCategory.API, ErrorSeverity.HIGH, 'DeletePericia', e);
       return false;
     }
   };
@@ -81,38 +116,11 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     setFilterPrazo('todos');
   };
 
-  const exportData = (): string | null => {
-    try {
-      return JSON.stringify(pericias, null, 2);
-    } catch (error) {
-      errorHandler.logError(ErrorCategory.PROCESSING, ErrorSeverity.MEDIUM, 'ExportData', error);
-      return null;
-    }
-  };
-
-  const importData = (jsonString: string): boolean => {
-    try {
-      const data = JSON.parse(jsonString);
-      if (!Array.isArray(data)) throw new Error('Formato de importação inválido');
-      setPericias(data);
-      return true;
-    } catch (error) {
-      errorHandler.logError(ErrorCategory.PROCESSING, ErrorSeverity.HIGH, 'ImportData', error);
-      return false;
-    }
-  };
-
-  const clearAllData = (): boolean => {
-    try {
-      setPericias([]);
-      return true;
-    } catch (error) {
-      errorHandler.logError(ErrorCategory.STORAGE, ErrorSeverity.CRITICAL, 'ClearAllData', error);
-      return false;
-    }
-  };
+  // As funções de import/export/clear agora são obsoletas e serão removidas
+  // Elas podem ser reimplementadas no futuro para interagir com a API se necessário
 
   const value = useMemo(() => ({
+    isLoading,
     pericias,
     addPericia,
     updatePericia,
@@ -131,12 +139,20 @@ export function PericiasProvider({ children }: { children: ReactNode }) {
     prazos7Dias,
     prazos15Dias,
     isPrazoVencido,
-    getPrazoStatus, // A função agora é importada diretamente do hook de dados derivados
+    getPrazoStatus,
     clearAllFilters,
-    exportData,
-    importData,
-    clearAllData,
-  }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, periciasAtrasadas, prazos7Dias, prazos15Dias]);
+    exportData: () => JSON.stringify(pericias), // Mantido para relatórios locais
+    importData: () => false, // Obsoleto
+    clearAllData: () => false, // Obsoleto
+  }), [pericias, searchTerm, filterStatus, filterDate, filterPrazo, filteredPericias, stats, isLoading]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen"><p>Carregando perícias...</p></div>;
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center h-screen"><p className="text-red-500">{error}</p></div>;
+  }
 
   return <PericiasContext.Provider value={value}>{children}</PericiasContext.Provider>;
 }
