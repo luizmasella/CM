@@ -6,8 +6,10 @@ import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmationModal from './ConfirmationModal';
+import PericiasTable from './PericiasTable'; // Importando a tabela
+import AdvancedSearchPanel from './AdvancedSearchPanel'; // Importando o painel de busca
 import { statusConfig } from '../config/constants';
-import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X, ChevronDown, ChevronUp, Calendar, Clock } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, AlertCircle, Search, Filter, X, ChevronDown, ChevronUp, Calendar, Clock, FileText } from 'lucide-react';
 
 export default function PericiasManager() {
   const { 
@@ -298,140 +300,12 @@ export default function PericiasManager() {
         </button>
       </div>
 
-      {/* ✅ FILTROS AVANÇADOS COMPLETOS */}
       {showAdvancedSearch && (
-        <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 mb-4 space-y-4">
-          <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <Filter size={18} />
-            Filtros Avançados
-          </h3>
-
-          {/* Linha 1: Vara, Juiz, Região */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vara</label>
-              <select
-                value={advancedFilters.vara}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, vara: e.target.value}))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              >
-                <option value="">Todas as Varas</option>
-                {uniqueValues.varas.map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Juiz(a)</label>
-              <select
-                value={advancedFilters.juiz}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, juiz: e.target.value}))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              >
-                <option value="">Todos os Juízes</option>
-                {uniqueValues.juizes.map(j => (
-                  <option key={j} value={j}>{j}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Região</label>
-              <select
-                value={advancedFilters.regiao}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, regiao: e.target.value}))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              >
-                <option value="">Todas as Regiões</option>
-                {uniqueValues.regioes.map(r => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Linha 2: Reclamada, Tipo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reclamada (busca parcial)</label>
-              <input
-                type="text"
-                value={advancedFilters.reclamada}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, reclamada: e.target.value}))}
-                placeholder="Digite parte do nome..."
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Perícia</label>
-              <select
-                value={advancedFilters.tipo}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, tipo: e.target.value}))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              >
-                <option value="">Todos os Tipos</option>
-                {uniqueValues.tipos.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Linha 3: Filtros de Prazos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <Clock className="inline mr-1" size={14} />
-                Tipo de Prazo
-              </label>
-              <select
-                value={advancedFilters.tipoPrazo}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, tipoPrazo: e.target.value}))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              >
-                <option value="todos">Todos</option>
-                <option value="laudo">Apenas com Prazo de Laudo</option>
-                <option value="quesitos">Apenas com Prazo de Quesitos</option>
-                <option value="ambos">Com Ambos os Prazos</option>
-                <option value="sem_prazo">Sem Prazos Definidos</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <Calendar className="inline mr-1" size={14} />
-                Status do Prazo
-              </label>
-              <select
-                value={advancedFilters.statusPrazo}
-                onChange={(e) => setAdvancedFilters(prev => ({...prev, statusPrazo: e.target.value}))}
-                className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-              >
-                <option value="todos">Todos</option>
-                <option value="vencido">Vencidos</option>
-                <option value="7dias">Próximos 7 Dias</option>
-                <option value="15dias">Próximos 15 Dias</option>
-                <option value="normal">Normal (Mais de 15 dias)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Botão Limpar Filtros Avançados */}
-          <div className="flex justify-end pt-2">
-            <button
-              onClick={() => setAdvancedFilters({
-                vara: '', juiz: '', regiao: '', reclamada: '', tipo: '',
-                tipoPrazo: 'todos', statusPrazo: 'todos'
-              })}
-              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 hover:bg-gray-200 px-3 py-1 rounded transition-colors"
-            >
-              <X size={14} />
-              Limpar Filtros Avançados
-            </button>
-          </div>
-        </div>
+        <AdvancedSearchPanel
+          advancedFilters={advancedFilters}
+          onFilterChange={setAdvancedFilters}
+          uniqueValues={uniqueValues}
+        />
       )}
 
       {/* ✅ INDICADOR DE FILTROS ATIVOS */}
@@ -484,99 +358,15 @@ export default function PericiasManager() {
             </button>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b-2 border-gray-200">
-              <tr>
-                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Processo</th>
-                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Reclamante</th>
-                <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Data</th>
-                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Prazos</th>
-                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
-                <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPericias.map(pericia => {
-                const StatusIcon = statusConfig[pericia.status]?.icon;
-                const isDeleting = deletingId === pericia.id;
-
-                return (
-                  <tr
-                    key={pericia.id}
-                    onClick={() => handleViewDetails(pericia)}
-                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${isDeleting ? 'opacity-50' : ''}`}
-                  >
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openProcessPage(pericia); }}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800 underline transition-colors"
-                      >
-                        {pericia.numeroProcesso}
-                      </button>
-                    </td>
-                    <td className="px-3 py-3">
-                      <p className="text-sm font-medium text-gray-900">{pericia.reclamante}</p>
-                    </td>
-                    <td className="px-3 py-3 text-center whitespace-nowrap">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {new Date(pericia.data).toLocaleDateString('pt-BR')}
-                        </p>
-                        <p className="text-xs text-gray-500">{pericia.hora}</p>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-col gap-1">
-                        {renderPrazoIndicator(pericia.prazoLaudo, 'laudo')}
-                        {renderPrazoIndicator(pericia.prazoQuesitos, 'quesitos')}
-                        {!pericia.prazoLaudo && !pericia.prazoQuesitos && (
-                          <span className="text-xs text-gray-400">Sem prazo</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {pericia.tipo}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-center">
-                      {statusConfig[pericia.status] && (
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[pericia.status].color}`}>
-                          {StatusIcon && <StatusIcon size={12} className="mr-1" />}
-                          {statusConfig[pericia.status].label}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEdit(pericia); }}
-                          className="text-blue-600 hover:text-blue-900 transition-colors p-1 hover:bg-blue-50 rounded"
-                          title="Editar"
-                          disabled={isDeleting}
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(pericia.id, pericia.numeroProcesso); }}
-                          className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Excluir"
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                          ) : (
-                            <Trash2 size={18} />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <PericiasTable
+            pericias={filteredPericias}
+            deletingId={deletingId}
+            onViewDetails={handleViewDetails}
+            onOpenProcess={openProcessPage}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            renderPrazoIndicator={renderPrazoIndicator}
+          />
         )}
       </div>
       

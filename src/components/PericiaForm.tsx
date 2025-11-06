@@ -11,6 +11,10 @@ import ConfirmationModal from './ConfirmationModal';
 import { PlusCircle, X, AlertCircle, Trash2 } from 'lucide-react';
 import { tiposPericia as tiposDefault, statusConfig } from '../config/constants';
 import { PericiaValidator } from '../utils/validation';
+import FormProcessoSection from './FormProcessoSection';
+import FormPartesSection from './FormPartesSection';
+import FormDataLocalSection from './FormDataLocalSection';
+import FormStatusHonorariosSection from './FormStatusHonorariosSection';
 
 export default function PericiaForm() {
   const { pericias, addPericia, updatePericia, deletePericia } = usePericias();
@@ -413,323 +417,56 @@ export default function PericiaForm() {
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
-                    <h3 className="font-bold text-lg mb-4 text-blue-800 flex items-center gap-2">
-                      📋 Dados do Processo
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Número do Processo <span className="text-red-500">*</span>
-                            </label>
-                            <input 
-                              type="text" 
-                              name="numeroProcesso" 
-                              value={formData.numeroProcesso} 
-                              onChange={handleChange}
-                              onBlur={() => handleBlur('numeroProcesso')}
-                              className={getFieldClassName('numeroProcesso')}
-                              placeholder="0000000-00.0000.0.00.0000"
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            {touchedFields.has('numeroProcesso') && errors.numeroProcesso && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1 animate-pulse">
-                                <AlertCircle size={12} />
-                                {errors.numeroProcesso}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-1">Formato CNJ: NNNNNNN-DD.AAAA.J.TT.OOOO</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Vara
-                            </label>
-                            <input 
-                              type="text" 
-                              name="vara" 
-                              value={formData.vara} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                              placeholder="1ª Vara do Trabalho"
-                              disabled={isSubmitting || isDeleting}
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Juiz(a) Responsável
-                            </label>
-                            <input 
-                              type="text" 
-                              name="juiz" 
-                              value={formData.juiz} 
-                              onChange={handleChange}
-                              onBlur={() => handleBlur('juiz')}
-                              className={getFieldClassName('juiz')}
-                              placeholder="Dr(a). Nome Completo"
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            {touchedFields.has('juiz') && errors.juiz && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                                <AlertCircle size={12} />
-                                {errors.juiz}
-                              </p>
-                            )}
-                        </div>
-                        <div>
-                            <Combobox
-                              label="Região/Tribunal"
-                              value={formData.regiao}
-                              onChange={(value) => setFormData(prev => ({...prev, regiao: value}))}
-                              options={regioes}
-                              onAddNew={addRegiao}
-                              placeholder="Digite ou selecione uma região..."
-                            />
-                        </div>
-                    </div>
-                </div>
+                <FormProcessoSection
+                  formData={formData}
+                  errors={errors}
+                  touchedFields={touchedFields}
+                  isSubmitting={isSubmitting}
+                  isDeleting={isDeleting}
+                  regioes={regioes}
+                  handleChange={handleChange}
+                  handleBlur={handleBlur}
+                  setFormData={setFormData}
+                  addRegiao={addRegiao}
+                  getFieldClassName={getFieldClassName}
+                />
 
-                <div className="bg-green-50 p-6 rounded-lg border-2 border-green-200">
-                    <h3 className="font-bold text-lg mb-4 text-green-800 flex items-center gap-2">
-                      👥 Partes do Processo
-                    </h3>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Reclamante (Autor)
-                        </label>
-                        <input 
-                          type="text" 
-                          name="reclamante" 
-                          value={formData.reclamante} 
-                          onChange={handleChange}
-                          onBlur={() => handleBlur('reclamante')}
-                          className={getFieldClassName('reclamante')}
-                          placeholder="Nome completo do reclamante"
-                          disabled={isSubmitting || isDeleting}
-                        />
-                        {touchedFields.has('reclamante') && errors.reclamante && (
-                          <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                            <AlertCircle size={12} />
-                            {errors.reclamante}
-                          </p>
-                        )}
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Reclamada(s) (Réu)
-                        </label>
-                        {formData.reclamadas.map((reclamada, index) => (
-                            <div key={index} className="flex items-center gap-2 mb-2">
-                                <input 
-                                  type="text" 
-                                  value={reclamada} 
-                                  onChange={(e) => handleReclamadaChange(index, e.target.value)}
-                                  onBlur={() => handleBlur('reclamadas')}
-                                  className={getFieldClassName('reclamadas')}
-                                  placeholder={`Nome da reclamada ${index + 1}`}
-                                  disabled={isSubmitting || isDeleting}
-                                />
-                                {formData.reclamadas.length > 1 && (
-                                    <button 
-                                      type="button" 
-                                      onClick={() => removeReclamadaField(index)} 
-                                      className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded-lg transition-colors"
-                                      title="Remover reclamada"
-                                      disabled={isSubmitting || isDeleting}
-                                    >
-                                      <X size={20} />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        {touchedFields.has('reclamadas') && errors.reclamadas && (
-                          <p className="text-xs text-red-600 mb-2 flex items-center gap-1">
-                            <AlertCircle size={12} />
-                            {errors.reclamadas}
-                          </p>
-                        )}
-                        <button 
-                          type="button" 
-                          onClick={addReclamadaField} 
-                          className="mt-2 text-sm text-green-600 hover:text-green-800 flex items-center gap-1 font-medium hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
-                          disabled={isSubmitting || isDeleting}
-                        >
-                          <PlusCircle size={16} /> Adicionar outra reclamada
-                        </button>
-                    </div>
-                </div>
+                <FormPartesSection
+                  formData={formData}
+                  errors={errors}
+                  touchedFields={touchedFields}
+                  isSubmitting={isSubmitting}
+                  isDeleting={isDeleting}
+                  handleChange={handleChange}
+                  handleBlur={handleBlur}
+                  handleReclamadaChange={handleReclamadaChange}
+                  addReclamadaField={addReclamadaField}
+                  removeReclamadaField={removeReclamadaField}
+                  getFieldClassName={getFieldClassName}
+                />
 
-                <div className="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
-                    <h3 className="font-bold text-lg mb-4 text-purple-800 flex items-center gap-2">
-                      📅 Data e Local da Perícia
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Data da Perícia
-                            </label>
-                            <input 
-                              type="date" 
-                              name="data" 
-                              value={formData.data} 
-                              onChange={handleChange}
-                              onBlur={() => handleBlur('data')}
-                              className={getFieldClassName('data')}
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            {touchedFields.has('data') && errors.data && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                                <AlertCircle size={12} />
-                                {errors.data}
-                              </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Horário
-                            </label>
-                            <input 
-                              type="time" 
-                              name="hora" 
-                              value={formData.hora} 
-                              onChange={handleChange}
-                              onBlur={() => handleBlur('hora')}
-                              className={getFieldClassName('hora')}
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            {touchedFields.has('hora') && errors.hora && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                                <AlertCircle size={12} />
-                                {errors.hora}
-                              </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Tipo de Perícia
-                            </label>
-                            <input 
-                              type="text" 
-                              name="tipo" 
-                              value={formData.tipo} 
-                              onChange={handleChange} 
-                              className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
-                              list="tipos-pericia" 
-                              placeholder="Ex: Médica, Ortopédica..."
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            <datalist id="tipos-pericia">
-                                {tiposPericia.map(t => <option key={t} value={t} />)}
-                            </datalist>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Local da Perícia
-                        </label>
-                        <input 
-                          type="text" 
-                          name="local" 
-                          value={formData.local} 
-                          onChange={handleChange} 
-                          className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
-                          placeholder="Ex: Fórum Central, Hospital das Clínicas, Consultório..."
-                          disabled={isSubmitting || isDeleting}
-                        />
-                    </div>
-                </div>
+                <FormDataLocalSection
+                  formData={formData}
+                  errors={errors}
+                  touchedFields={touchedFields}
+                  isSubmitting={isSubmitting}
+                  isDeleting={isDeleting}
+                  tiposPericia={tiposPericia}
+                  handleChange={handleChange}
+                  handleBlur={handleBlur}
+                  getFieldClassName={getFieldClassName}
+                />
 
-                <div className="bg-yellow-50 p-6 rounded-lg border-2 border-yellow-200">
-                    <h3 className="font-bold text-lg mb-4 text-yellow-800 flex items-center gap-2">
-                      💰 Status e Honorários
-                    </h3>
-                    
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Status Atual do Processo
-                        </label>
-                        <select 
-                          name="status" 
-                          value={formData.status} 
-                          onChange={handleChange} 
-                          className="w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                          disabled={isSubmitting || isDeleting}
-                        >
-                          {Object.entries(statusConfig).map(([key, config]) => (
-                            <option key={key} value={key}>{config.label}</option>
-                          ))}
-                        </select>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Honorários Solicitados (R$)
-                            </label>
-                            <input 
-                              type="number" 
-                              step="0.01" 
-                              min="0"
-                              name="honorariosSolicitados" 
-                              value={formData.honorariosSolicitados} 
-                              onChange={handleChange}
-                              onBlur={() => handleBlur('honorariosSolicitados')}
-                              className={getFieldClassName('honorariosSolicitados')}
-                              placeholder="Ex: 2500.00"
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            {touchedFields.has('honorariosSolicitados') && errors.honorariosSolicitados && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                                <AlertCircle size={12} />
-                                {errors.honorariosSolicitados}
-                              </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Honorários Deferidos (R$)
-                            </label>
-                            <input 
-                              type="number" 
-                              step="0.01" 
-                              min="0"
-                              name="honorariosDeferidos" 
-                              value={formData.honorariosDeferidos} 
-                              onChange={handleChange}
-                              onBlur={() => handleBlur('honorariosDeferidos')}
-                              className={getFieldClassName('honorariosDeferidos')}
-                              placeholder="Ex: 2000.00"
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            {touchedFields.has('honorariosDeferidos') && errors.honorariosDeferidos && (
-                              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                                <AlertCircle size={12} />
-                                {errors.honorariosDeferidos}
-                              </p>
-                            )}
-                        </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                        <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-lg border border-yellow-300 hover:bg-yellow-100 transition-colors">
-                            <input 
-                              type="checkbox" 
-                              name="justicaGratuita" 
-                              checked={formData.justicaGratuita} 
-                              onChange={handleChange} 
-                              className="rounded w-5 h-5 text-yellow-600 focus:ring-2 focus:ring-yellow-500"
-                              disabled={isSubmitting || isDeleting}
-                            />
-                            <span className="text-sm font-medium text-gray-700">
-                              ⚖️ Processo com Justiça Gratuita
-                            </span>
-                        </label>
-                    </div>
-                </div>
+                <FormStatusHonorariosSection
+                  formData={formData}
+                  errors={errors}
+                  touchedFields={touchedFields}
+                  isSubmitting={isSubmitting}
+                  isDeleting={isDeleting}
+                  handleChange={handleChange}
+                  handleBlur={handleBlur}
+                  getFieldClassName={getFieldClassName}
+                />
 
                 <div className="bg-orange-50 p-6 rounded-lg border-2 border-orange-200">
                     <h3 className="font-bold text-lg mb-4 text-orange-800 flex items-center gap-2">
