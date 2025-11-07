@@ -1,0 +1,10 @@
+# Dependencies
+/node_modules
+
+# Build artifacts
+/dist
+
+# Others
+.DS_Store
+.env.local
+*.log
