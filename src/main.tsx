@@ -7,6 +7,7 @@ import { PericiasProvider } from './context/PericiasContext.tsx';
 import { UIProvider } from './context/UIContext.tsx';
 import { ToastProvider } from './context/ToastContext.tsx';
 import { RegioesProvider } from './context/RegioesContext.tsx';
+import { AuthProvider } from './context/AuthContext.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -14,7 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <RegioesProvider>
         <UIProvider>
           <PericiasProvider>
-            <App />
+            <AuthProvider>
+              <App />
+            </AuthProvider>
           </PericiasProvider>
         </UIProvider>
       </RegioesProvider>
