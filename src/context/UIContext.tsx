@@ -22,6 +22,8 @@ interface UIContextProps {
   showNotifications: boolean;
   setShowNotifications: (show: boolean) => void;
   handleCardClick: (filterType: string, value: string | null) => void;
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
 }
 
 const UIContext = createContext<UIContextProps | undefined>(undefined);
@@ -35,6 +37,11 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [processDetailView, setProcessDetailView] = useState(false);
   const [currentPericia, setCurrentPericia] = useState<any | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!isSidebarOpen);
+  };
 
   const handleCardClick = (filterType: string, value: string | null) => {
     setActiveTab('pericias');
@@ -90,20 +97,23 @@ export function UIProvider({ children }: { children: ReactNode }) {
     closeDetails, 
     processDetailView, 
     currentPericia, 
-    openProcessPage, 
-    closeProcessPage, 
-    showNotifications, 
-    setShowNotifications, 
-    handleCardClick 
+    openProcessPage,
+    closeProcessPage,
+    showNotifications,
+    setShowNotifications,
+    handleCardClick,
+    isSidebarOpen,
+    toggleSidebar,
   }), [
-    activeTab, 
-    showForm, 
-    editingId, 
-    showDetails, 
-    selectedPericia, 
-    processDetailView, 
-    currentPericia, 
-    showNotifications
+    activeTab,
+    showForm,
+    editingId,
+    showDetails,
+    selectedPericia,
+    processDetailView,
+    currentPericia,
+    showNotifications,
+    isSidebarOpen,
   ]);
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;

@@ -1,11 +1,11 @@
 import React from 'react';
 import { usePericias } from '../context/PericiasContext';
 import { useUI } from '../context/UIContext';
-import { Activity, Bell, AlertTriangle, X } from 'lucide-react';
+import { Activity, Bell, AlertTriangle, X, Menu } from 'lucide-react';
 
 export default function Header() {
   const { periciasAtrasadas } = usePericias();
-  const { showNotifications, setShowNotifications, openProcessPage, setActiveTab } = useUI();
+  const { showNotifications, setShowNotifications, toggleSidebar } = useUI();
   
   const [notifications, setNotifications] = React.useState<any[]>([]); 
   const notificacoesNaoLidas = notifications.filter(n => !n.lida).length;
@@ -18,12 +18,17 @@ export default function Header() {
     <header className="bg-gradient-to-r from-blue-700 to-blue-900 text-white shadow-xl">
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Activity size={36} />
-              Sistema de Perícias Médicas
-            </h1>
-            <p className="text-blue-100 mt-1">Gerenciamento completo de perícias judiciais</p>
+          <div className="flex items-center gap-4">
+            <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-white/20 transition-colors">
+              <Menu size={24} />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                <Activity size={36} />
+                Sistema de Perícias Médicas
+              </h1>
+              <p className="text-blue-100 mt-1">Gerenciamento completo de perícias judiciais</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {periciasAtrasadas.length > 0 && (
